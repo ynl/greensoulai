@@ -328,19 +328,18 @@ func (c *CustomLLM) CallStream(ctx context.Context, messages []llm.Message, opti
 
 ```bash
 # 运行基础示例
-cd examples/llm
-go run basic_usage.go
-
-# 设置API密钥
+cd examples/llm/basic
 export OPENAI_API_KEY="your-api-key-here"
-go run basic_usage.go
+go run main.go
 
 # OpenRouter基础示例
+cd examples/llm/openrouter/basic
 export OPENROUTER_API_KEY="sk-or-v1-your-key-here"
-go run openrouter_basic.go
+go run main.go
 
 # OpenRouter高级功能示例
-go run openrouter_advanced.go
+cd examples/llm/openrouter/advanced
+go run main.go
 ```
 
 ## OpenRouter集成

@@ -17,7 +17,7 @@ func main() {
 	// 优先使用环境变量
 	apiKey := os.Getenv("OPENROUTER_API_KEY")
 	if apiKey == "" {
-		apiKey = "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"
+		apiKey = ""
 		fmt.Println("⚠️  使用示例API Key，建议设置环境变量 OPENROUTER_API_KEY")
 	}
 

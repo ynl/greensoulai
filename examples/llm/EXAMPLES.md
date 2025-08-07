@@ -4,7 +4,7 @@
 
 ## 📁 示例文件
 
-### 1. `basic_usage.go` - LLM基础使用
+### 1. `basic/main.go` - LLM基础使用
 **功能**: 演示LLM模块的基本功能
 - ✅ 基础对话调用
 - ✅ 流式响应
@@ -16,7 +16,7 @@
 ```bash
 # 设置OpenAI API Key
 export OPENAI_API_KEY="your-openai-key"
-go run basic_usage.go
+cd basic && go run main.go
 ```
 
 **适用场景**: 
@@ -26,7 +26,7 @@ go run basic_usage.go
 
 ---
 
-### 2. `openrouter_basic.go` - OpenRouter基础集成
+### 2. `openrouter/basic/main.go` - OpenRouter基础集成
 **功能**: 演示如何使用OpenRouter作为LLM提供商
 - ✅ OpenRouter API配置
 - ✅ 免费模型使用
@@ -38,10 +38,10 @@ go run basic_usage.go
 ```bash
 # 使用环境变量（推荐）
 export OPENROUTER_API_KEY="sk-or-v1-your-key"
-go run openrouter_basic.go
+cd openrouter/basic && go run main.go
 
 # 或直接运行（使用示例Key）
-go run openrouter_basic.go
+cd openrouter/basic && go run main.go
 ```
 
 **适用场景**:
@@ -51,7 +51,7 @@ go run openrouter_basic.go
 
 ---
 
-### 3. `openrouter_advanced.go` - OpenRouter高级功能
+### 3. `openrouter/advanced/main.go` - OpenRouter高级功能
 **功能**: 演示OpenRouter的全部功能
 - ✅ 多种测试场景
 - ✅ 同步和流式调用
@@ -62,7 +62,7 @@ go run openrouter_basic.go
 **运行方式**:
 ```bash
 export OPENROUTER_API_KEY="sk-or-v1-your-key"
-go run openrouter_advanced.go
+cd openrouter/advanced && go run main.go
 ```
 
 **适用场景**:
