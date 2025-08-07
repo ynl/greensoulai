@@ -98,3 +98,4 @@ dev/
 # Backup files
 *.bak
 *.backup
+*.backup_*

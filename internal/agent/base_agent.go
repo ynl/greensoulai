@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -458,8 +459,17 @@ func (a *BaseAgent) buildTaskOutput(task Task, response *llm.Response) *TaskOutp
 	}
 
 	// 尝试解析JSON输出
-	if strings.Contains(response.Content, "{") && strings.Contains(response.Content, "}") {
-		// 可以添加JSON解析逻辑
+	if task.GetOutputFormat() == OutputFormatJSON ||
+		(strings.Contains(response.Content, "{") && strings.Contains(response.Content, "}")) {
+		// 尝试解析为JSON
+		var jsonData map[string]interface{}
+		if err := json.Unmarshal([]byte(response.Content), &jsonData); err == nil {
+			output.JSON = jsonData
+			// 如果任务期望JSON格式，更新输出格式
+			if task.GetOutputFormat() == OutputFormatJSON {
+				output.OutputFormat = OutputFormatJSON
+			}
+		}
 	}
 
 	// 生成摘要

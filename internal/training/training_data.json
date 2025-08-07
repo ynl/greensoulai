@@ -1,0 +1,67 @@
+{
+  "created_at": "2025-08-07T16:00:14.361121+08:00",
+  "updated_at": "2025-08-07T16:00:14.361137+08:00",
+  "version": "1.0",
+  "config": {
+    "iterations": 10,
+    "filename": "training_data.json",
+    "inputs": null,
+    "learning_rate": 0.001,
+    "batch_size": 1,
+    "validation_split": 0.2,
+    "collect_feedback": false,
+    "feedback_timeout": 300000000000,
+    "feedback_prompts": [
+      "Please rate the quality of this output (1-10):",
+      "Any suggestions for improvement?"
+    ],
+    "metrics_enabled": false,
+    "metrics_interval": 1,
+    "target_metrics": [
+      "execution_time",
+      "success_rate",
+      "feedback_score"
+    ],
+    "early_stopping": false,
+    "patience_epochs": 3,
+    "min_improvement": 0.01,
+    "save_interval": 5,
+    "verbose": true,
+    "auto_save": true,
+    "backup_count": 3
+  },
+  "session_id": "e6cf3edd-ad06-4cc9-8bdc-a7367670f61e",
+  "crew_name": "",
+  "total_runs": 1,
+  "iterations": [
+    {
+      "iteration_id": "bfea5e8a-efc6-42b2-a7a4-70a5abe22c27",
+      "index": 0,
+      "timestamp": "2025-08-07T16:00:14.36113+08:00",
+      "duration": 3584,
+      "inputs": null,
+      "outputs": null,
+      "success": false,
+      "error": "execution failed for testing",
+      "agent_data": [],
+      "task_data": []
+    }
+  ],
+  "summary": {
+    "total_iterations": 0,
+    "successful_runs": 0,
+    "failed_runs": 0,
+    "total_duration": 0,
+    "average_duration": 0,
+    "initial_score": 0,
+    "final_score": 0,
+    "improvement_rate": 0,
+    "best_score": 0,
+    "worst_score": 0,
+    "total_feedback": 0,
+    "average_feedback": 0,
+    "total_tokens": 0,
+    "average_tokens": 0,
+    "recommendations": null
+  }
+}
