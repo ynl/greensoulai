@@ -3,6 +3,7 @@ package crew
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ynl/greensoulai/internal/agent"
@@ -225,9 +226,26 @@ func (c *BaseCrew) executeTasks(ctx context.Context, tasks []agent.Task, inputs 
 }
 
 // selectAgentForTask 为任务选择合适的agent
-// 优先级：任务指定Agent > Hierarchical管理器Agent > Sequential按序分配 > 智能匹配
+// 完全对齐Python版本的_get_agent_to_use逻辑
 func (c *BaseCrew) selectAgentForTask(task agent.Task, taskIndex int) (agent.Agent, error) {
-	// 优先检查任务是否已经指定了Agent（类似Python版本中的task.agent）
+	// Python版本逻辑：
+	// if self.process == Process.hierarchical:
+	//     return self.manager_agent
+	// return task.agent
+
+	// 1. 如果是Hierarchical模式且有管理器agent，直接返回管理器
+	if c.process == ProcessHierarchical {
+		if c.managerAgent != nil {
+			c.logger.Debug("using manager agent for hierarchical process",
+				logger.Field{Key: "task_id", Value: task.GetID()},
+				logger.Field{Key: "manager_role", Value: c.managerAgent.GetRole()},
+			)
+			return c.managerAgent, nil
+		}
+		return nil, fmt.Errorf("hierarchical process requires manager agent")
+	}
+
+	// 2. 优先检查任务是否已经指定了Agent（Python版本中的task.agent）
 	if taskAgent := c.getTaskAssignedAgent(task); taskAgent != nil {
 		c.logger.Debug("using task-assigned agent",
 			logger.Field{Key: "task_id", Value: task.GetID()},
@@ -236,22 +254,13 @@ func (c *BaseCrew) selectAgentForTask(task agent.Task, taskIndex int) (agent.Age
 		return taskAgent, nil
 	}
 
-	// 如果是层级模式且有管理器agent，使用管理器进行委托
-	if c.process == ProcessHierarchical && c.managerAgent != nil {
-		c.logger.Debug("using manager agent for hierarchical delegation",
-			logger.Field{Key: "task_id", Value: task.GetID()},
-			logger.Field{Key: "manager_role", Value: c.managerAgent.GetRole()},
-		)
-		return c.managerAgent, nil
-	}
-
-	// 顺序模式：按索引分配agent
+	// 3. Sequential模式的默认分配逻辑（当任务没有预分配Agent时）
 	if c.process == ProcessSequential {
 		if len(c.agents) == 0 {
 			return nil, fmt.Errorf("no agents available for sequential execution")
 		}
 
-		// 优先使用一对一映射
+		// 按索引分配agent（1:1映射优先）
 		if taskIndex < len(c.agents) {
 			selectedAgent := c.agents[taskIndex]
 			c.logger.Debug("sequential agent assignment (1:1)",
@@ -274,15 +283,7 @@ func (c *BaseCrew) selectAgentForTask(task agent.Task, taskIndex int) (agent.Age
 		return selectedAgent, nil
 	}
 
-	// TODO: 实现更智能的agent选择逻辑
-	// 可以基于：
-	// 1. 任务类型与agent技能匹配
-	// 2. Agent当前负载
-	// 3. 任务优先级
-	// 4. Agent专业领域
-	// 5. Agent工具兼容性
-
-	// 默认使用第一个agent
+	// 4. 其他情况的默认处理
 	if len(c.agents) > 0 {
 		defaultAgent := c.agents[0]
 		c.logger.Debug("using default (first) agent",
@@ -296,15 +297,14 @@ func (c *BaseCrew) selectAgentForTask(task agent.Task, taskIndex int) (agent.Age
 }
 
 // getTaskAssignedAgent 检查任务是否已指定Agent
-// 这个方法用于模拟Python版本中的task.agent属性
+// 完全对标Python版本中的task.agent属性
 func (c *BaseCrew) getTaskAssignedAgent(task agent.Task) agent.Agent {
-	// 如果任务有预分配的agent，在这里检查
-	// 目前BaseTask没有agent字段，这是一个扩展点
-	// TODO: 可以考虑在Task接口中添加GetAssignedAgent()方法
-	return nil
+	// 现在使用新的GetAssignedAgent()方法，完全对齐Python版本
+	return task.GetAssignedAgent()
 }
 
 // prepareTaskContext 准备任务执行上下文
+// 完全对齐Python版本的_get_context逻辑
 func (c *BaseCrew) prepareTaskContext(inputs map[string]interface{}, tasksOutput []*agent.TaskOutput, lastOutput *agent.TaskOutput) map[string]interface{} {
 	context := make(map[string]interface{})
 
@@ -313,12 +313,20 @@ func (c *BaseCrew) prepareTaskContext(inputs map[string]interface{}, tasksOutput
 		context[key] = value
 	}
 
-	// 添加之前任务的输出作为上下文
+	// Python版本逻辑：aggregated context字符串
+	// 使用与Python完全一致的上下文聚合方式
+	aggregatedContext := c.aggregateRawOutputsFromTaskOutputs(tasksOutput)
+	if aggregatedContext != "" {
+		context["aggregated_context"] = aggregatedContext
+		context["previous_tasks_context"] = aggregatedContext // 兼容性字段
+	}
+
+	// 兼容原有测试：保留previous_tasks_output字段
 	if len(tasksOutput) > 0 {
 		context["previous_tasks_output"] = tasksOutput
 	}
 
-	// 添加最后一个任务的输出
+	// 添加最后一个任务的输出（保持兼容性）
 	if lastOutput != nil {
 		context["last_task_output"] = lastOutput.Raw
 		if lastOutput.JSON != nil {
@@ -333,6 +341,32 @@ func (c *BaseCrew) prepareTaskContext(inputs map[string]interface{}, tasksOutput
 	context["completed_tasks"] = len(tasksOutput)
 
 	return context
+}
+
+// aggregateRawOutputsFromTaskOutputs 聚合任务输出为上下文字符串
+// 完全对齐Python版本的aggregate_raw_outputs_from_task_outputs函数
+func (c *BaseCrew) aggregateRawOutputsFromTaskOutputs(taskOutputs []*agent.TaskOutput) string {
+	if len(taskOutputs) == 0 {
+		return ""
+	}
+
+	// Python版本使用的分隔符："\n\n----------\n\n"
+	dividers := "\n\n----------\n\n"
+
+	// 收集所有任务的raw输出
+	var rawOutputs []string
+	for _, output := range taskOutputs {
+		if output != nil && output.Raw != "" {
+			rawOutputs = append(rawOutputs, output.Raw)
+		}
+	}
+
+	if len(rawOutputs) == 0 {
+		return ""
+	}
+
+	// 使用分隔符连接，完全对标Python版本
+	return strings.Join(rawOutputs, dividers)
 }
 
 // createManagerAgent 创建或配置管理器agent

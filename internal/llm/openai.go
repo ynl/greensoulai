@@ -39,19 +39,28 @@ type OpenAILLM struct {
 
 // OpenAIChatRequest represents the request structure for OpenAI chat API
 type OpenAIChatRequest struct {
-	Model            string                 `json:"model"`
-	Messages         []OpenAIMessage        `json:"messages"`
-	Temperature      *float64               `json:"temperature,omitempty"`
-	MaxTokens        *int                   `json:"max_tokens,omitempty"`
-	TopP             *float64               `json:"top_p,omitempty"`
-	FrequencyPenalty *float64               `json:"frequency_penalty,omitempty"`
-	PresencePenalty  *float64               `json:"presence_penalty,omitempty"`
-	Stop             []string               `json:"stop,omitempty"`
-	Stream           bool                   `json:"stream,omitempty"`
-	Tools            []OpenAITool           `json:"tools,omitempty"`
-	ToolChoice       interface{}            `json:"tool_choice,omitempty"`
-	User             string                 `json:"user,omitempty"`
-	ResponseFormat   map[string]interface{} `json:"response_format,omitempty"`
+	Model               string          `json:"model"`
+	Messages            []OpenAIMessage `json:"messages"`
+	Temperature         *float64        `json:"temperature,omitempty"`
+	MaxTokens           *int            `json:"max_tokens,omitempty"`
+	MaxCompletionTokens *int            `json:"max_completion_tokens,omitempty"` // 对标Python版本
+	TopP                *float64        `json:"top_p,omitempty"`
+	FrequencyPenalty    *float64        `json:"frequency_penalty,omitempty"`
+	PresencePenalty     *float64        `json:"presence_penalty,omitempty"`
+	Stop                []string        `json:"stop,omitempty"`
+	Stream              bool            `json:"stream,omitempty"`
+	Tools               []OpenAITool    `json:"tools,omitempty"`
+	ToolChoice          interface{}     `json:"tool_choice,omitempty"`
+	User                string          `json:"user,omitempty"`
+	ResponseFormat      interface{}     `json:"response_format,omitempty"`
+
+	// 对标Python版本的新增参数
+	N             *int                   `json:"n,omitempty"`              // 生成响应数量
+	Seed          *int                   `json:"seed,omitempty"`           // 随机种子
+	Logprobs      *int                   `json:"logprobs,omitempty"`       // 返回logprobs数量
+	TopLogprobs   *int                   `json:"top_logprobs,omitempty"`   // 返回top logprobs
+	LogitBias     map[int]float64        `json:"logit_bias,omitempty"`     // logit偏置
+	StreamOptions map[string]interface{} `json:"stream_options,omitempty"` // 流式选项
 }
 
 // OpenAIMessage represents a message in OpenAI format
@@ -253,11 +262,22 @@ func (o *OpenAILLM) buildChatRequest(messages []OpenAIMessage, options *CallOpti
 	if options != nil {
 		request.Temperature = options.Temperature
 		request.MaxTokens = options.MaxTokens
+		request.MaxCompletionTokens = options.MaxCompletionTokens // 对标Python版本
 		request.TopP = options.TopP
 		request.FrequencyPenalty = options.FrequencyPenalty
 		request.PresencePenalty = options.PresencePenalty
 		request.Stop = options.StopSequences
 		request.Stream = options.Stream
+		request.User = options.User
+		request.ResponseFormat = options.ResponseFormat
+
+		// 对标Python版本的新增参数
+		request.N = options.N
+		request.Seed = options.Seed
+		request.Logprobs = options.Logprobs
+		request.TopLogprobs = options.TopLogprobs
+		request.LogitBias = options.LogitBias
+		request.StreamOptions = options.StreamOptions
 
 		// Convert tools
 		if len(options.Tools) > 0 {

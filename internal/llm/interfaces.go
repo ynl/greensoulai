@@ -80,16 +80,37 @@ type ToolSchema struct {
 
 // CallOptions contains options for LLM calls
 type CallOptions struct {
-	Temperature      *float64               `json:"temperature,omitempty"`
-	MaxTokens        *int                   `json:"max_tokens,omitempty"`
-	TopP             *float64               `json:"top_p,omitempty"`
-	FrequencyPenalty *float64               `json:"frequency_penalty,omitempty"`
-	PresencePenalty  *float64               `json:"presence_penalty,omitempty"`
-	StopSequences    []string               `json:"stop,omitempty"`
-	Tools            []Tool                 `json:"tools,omitempty"`
-	ToolChoice       interface{}            `json:"tool_choice,omitempty"`
-	Stream           bool                   `json:"stream,omitempty"`
-	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	Temperature         *float64    `json:"temperature,omitempty"`
+	MaxTokens           *int        `json:"max_tokens,omitempty"`
+	MaxCompletionTokens *int        `json:"max_completion_tokens,omitempty"` // 对标Python版本
+	TopP                *float64    `json:"top_p,omitempty"`
+	FrequencyPenalty    *float64    `json:"frequency_penalty,omitempty"`
+	PresencePenalty     *float64    `json:"presence_penalty,omitempty"`
+	StopSequences       []string    `json:"stop,omitempty"`
+	Tools               []Tool      `json:"tools,omitempty"`
+	ToolChoice          interface{} `json:"tool_choice,omitempty"`
+	Stream              bool        `json:"stream,omitempty"`
+
+	// 对标Python版本的新增参数
+	N              *int            `json:"n,omitempty"`               // 生成响应数量
+	Seed           *int            `json:"seed,omitempty"`            // 随机种子
+	Logprobs       *int            `json:"logprobs,omitempty"`        // 返回logprobs数量
+	TopLogprobs    *int            `json:"top_logprobs,omitempty"`    // 返回top logprobs
+	ResponseFormat interface{}     `json:"response_format,omitempty"` // 响应格式
+	LogitBias      map[int]float64 `json:"logit_bias,omitempty"`      // logit偏置
+	User           string          `json:"user,omitempty"`            // 用户ID
+	Timeout        *time.Duration  `json:"timeout,omitempty"`         // 请求超时
+
+	// 回调和事件相关，对标Python版本
+	Callbacks          []interface{}          `json:"callbacks,omitempty"`           // 回调函数
+	AvailableFunctions map[string]interface{} `json:"available_functions,omitempty"` // 可用函数
+	FromTask           interface{}            `json:"from_task,omitempty"`           // 任务来源
+	FromAgent          interface{}            `json:"from_agent,omitempty"`          // Agent来源
+
+	// 流式响应选项
+	StreamOptions map[string]interface{} `json:"stream_options,omitempty"` // 流式选项
+
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // LLM defines the interface for language model implementations
@@ -165,6 +186,99 @@ func WithStream(stream bool) CallOption {
 func WithMetadata(metadata map[string]interface{}) CallOption {
 	return func(opts *CallOptions) {
 		opts.Metadata = metadata
+	}
+}
+
+// WithMaxCompletionTokens sets the maximum completion tokens, 对标Python版本
+func WithMaxCompletionTokens(maxCompletionTokens int) CallOption {
+	return func(opts *CallOptions) {
+		opts.MaxCompletionTokens = &maxCompletionTokens
+	}
+}
+
+// WithFrequencyPenalty sets the frequency penalty
+func WithFrequencyPenalty(penalty float64) CallOption {
+	return func(opts *CallOptions) {
+		opts.FrequencyPenalty = &penalty
+	}
+}
+
+// WithPresencePenalty sets the presence penalty
+func WithPresencePenalty(penalty float64) CallOption {
+	return func(opts *CallOptions) {
+		opts.PresencePenalty = &penalty
+	}
+}
+
+// WithN sets the number of responses to generate, 对标Python版本
+func WithN(n int) CallOption {
+	return func(opts *CallOptions) {
+		opts.N = &n
+	}
+}
+
+// WithSeed sets the random seed for reproducible outputs, 对标Python版本
+func WithSeed(seed int) CallOption {
+	return func(opts *CallOptions) {
+		opts.Seed = &seed
+	}
+}
+
+// WithResponseFormat sets the response format, 对标Python版本
+func WithResponseFormat(format interface{}) CallOption {
+	return func(opts *CallOptions) {
+		opts.ResponseFormat = format
+	}
+}
+
+// WithLogitBias sets logit bias for specific tokens, 对标Python版本
+func WithLogitBias(bias map[int]float64) CallOption {
+	return func(opts *CallOptions) {
+		opts.LogitBias = bias
+	}
+}
+
+// WithUser sets the user ID for tracking purposes, 对标Python版本
+func WithUser(user string) CallOption {
+	return func(opts *CallOptions) {
+		opts.User = user
+	}
+}
+
+// Note: WithTimeout is defined in base.go as a BaseLLMOption
+
+// WithCallbacks sets callback functions, 对标Python版本
+func WithCallbacks(callbacks []interface{}) CallOption {
+	return func(opts *CallOptions) {
+		opts.Callbacks = callbacks
+	}
+}
+
+// WithAvailableFunctions sets available functions for tool calls, 对标Python版本
+func WithAvailableFunctions(functions map[string]interface{}) CallOption {
+	return func(opts *CallOptions) {
+		opts.AvailableFunctions = functions
+	}
+}
+
+// WithFromTask sets the originating task, 对标Python版本
+func WithFromTask(task interface{}) CallOption {
+	return func(opts *CallOptions) {
+		opts.FromTask = task
+	}
+}
+
+// WithFromAgent sets the originating agent, 对标Python版本
+func WithFromAgent(agent interface{}) CallOption {
+	return func(opts *CallOptions) {
+		opts.FromAgent = agent
+	}
+}
+
+// WithStreamOptions sets streaming options, 对标Python版本
+func WithStreamOptions(options map[string]interface{}) CallOption {
+	return func(opts *CallOptions) {
+		opts.StreamOptions = options
 	}
 }
 

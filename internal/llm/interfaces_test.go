@@ -254,3 +254,215 @@ func TestConfig_Structure(t *testing.T) {
 		t.Errorf("Expected max tokens 1000, got %d", *config.MaxTokens)
 	}
 }
+
+// 新增：测试Python对标的新增参数选项
+func TestCallOptions_PythonAlignmentOptions(t *testing.T) {
+	tests := []struct {
+		name         string
+		applyOptions func(*CallOptions)
+		verify       func(*testing.T, *CallOptions)
+	}{
+		{
+			name: "max_completion_tokens",
+			applyOptions: func(opts *CallOptions) {
+				opts.ApplyOptions(WithMaxCompletionTokens(500))
+			},
+			verify: func(t *testing.T, opts *CallOptions) {
+				if opts.MaxCompletionTokens == nil || *opts.MaxCompletionTokens != 500 {
+					t.Errorf("Expected MaxCompletionTokens 500, got %v", opts.MaxCompletionTokens)
+				}
+			},
+		},
+		{
+			name: "frequency_penalty",
+			applyOptions: func(opts *CallOptions) {
+				opts.ApplyOptions(WithFrequencyPenalty(0.5))
+			},
+			verify: func(t *testing.T, opts *CallOptions) {
+				if opts.FrequencyPenalty == nil || *opts.FrequencyPenalty != 0.5 {
+					t.Errorf("Expected FrequencyPenalty 0.5, got %v", opts.FrequencyPenalty)
+				}
+			},
+		},
+		{
+			name: "presence_penalty",
+			applyOptions: func(opts *CallOptions) {
+				opts.ApplyOptions(WithPresencePenalty(0.3))
+			},
+			verify: func(t *testing.T, opts *CallOptions) {
+				if opts.PresencePenalty == nil || *opts.PresencePenalty != 0.3 {
+					t.Errorf("Expected PresencePenalty 0.3, got %v", opts.PresencePenalty)
+				}
+			},
+		},
+		{
+			name: "n_responses",
+			applyOptions: func(opts *CallOptions) {
+				opts.ApplyOptions(WithN(3))
+			},
+			verify: func(t *testing.T, opts *CallOptions) {
+				if opts.N == nil || *opts.N != 3 {
+					t.Errorf("Expected N 3, got %v", opts.N)
+				}
+			},
+		},
+		{
+			name: "seed",
+			applyOptions: func(opts *CallOptions) {
+				opts.ApplyOptions(WithSeed(12345))
+			},
+			verify: func(t *testing.T, opts *CallOptions) {
+				if opts.Seed == nil || *opts.Seed != 12345 {
+					t.Errorf("Expected Seed 12345, got %v", opts.Seed)
+				}
+			},
+		},
+		{
+			name: "response_format",
+			applyOptions: func(opts *CallOptions) {
+				format := map[string]interface{}{"type": "json_object"}
+				opts.ApplyOptions(WithResponseFormat(format))
+			},
+			verify: func(t *testing.T, opts *CallOptions) {
+				expected := map[string]interface{}{"type": "json_object"}
+				if opts.ResponseFormat == nil {
+					t.Error("Expected ResponseFormat to be set")
+					return
+				}
+				formatMap, ok := opts.ResponseFormat.(map[string]interface{})
+				if !ok {
+					t.Errorf("Expected ResponseFormat to be map[string]interface{}, got %T", opts.ResponseFormat)
+					return
+				}
+				if formatMap["type"] != expected["type"] {
+					t.Errorf("Expected ResponseFormat %v, got %v", expected, formatMap)
+				}
+			},
+		},
+		{
+			name: "logit_bias",
+			applyOptions: func(opts *CallOptions) {
+				bias := map[int]float64{50256: -100}
+				opts.ApplyOptions(WithLogitBias(bias))
+			},
+			verify: func(t *testing.T, opts *CallOptions) {
+				if opts.LogitBias == nil {
+					t.Error("Expected LogitBias to be set")
+					return
+				}
+				if len(opts.LogitBias) != 1 || opts.LogitBias[50256] != -100 {
+					t.Errorf("Expected LogitBias map[50256:-100], got %v", opts.LogitBias)
+				}
+			},
+		},
+		{
+			name: "user",
+			applyOptions: func(opts *CallOptions) {
+				opts.ApplyOptions(WithUser("test_user_123"))
+			},
+			verify: func(t *testing.T, opts *CallOptions) {
+				if opts.User != "test_user_123" {
+					t.Errorf("Expected User 'test_user_123', got '%s'", opts.User)
+				}
+			},
+		},
+		{
+			name: "callbacks",
+			applyOptions: func(opts *CallOptions) {
+				callbacks := []interface{}{"callback1", "callback2"}
+				opts.ApplyOptions(WithCallbacks(callbacks))
+			},
+			verify: func(t *testing.T, opts *CallOptions) {
+				if len(opts.Callbacks) != 2 {
+					t.Errorf("Expected 2 callbacks, got %d", len(opts.Callbacks))
+					return
+				}
+				if opts.Callbacks[0] != "callback1" || opts.Callbacks[1] != "callback2" {
+					t.Errorf("Expected callbacks [callback1, callback2], got %v", opts.Callbacks)
+				}
+			},
+		},
+		{
+			name: "available_functions",
+			applyOptions: func(opts *CallOptions) {
+				functions := map[string]interface{}{
+					"func1": "handler1",
+					"func2": "handler2",
+				}
+				opts.ApplyOptions(WithAvailableFunctions(functions))
+			},
+			verify: func(t *testing.T, opts *CallOptions) {
+				if len(opts.AvailableFunctions) != 2 {
+					t.Errorf("Expected 2 available functions, got %d", len(opts.AvailableFunctions))
+					return
+				}
+				if opts.AvailableFunctions["func1"] != "handler1" {
+					t.Errorf("Expected func1 -> handler1, got %v", opts.AvailableFunctions["func1"])
+				}
+			},
+		},
+		{
+			name: "stream_options",
+			applyOptions: func(opts *CallOptions) {
+				streamOpts := map[string]interface{}{"include_usage": true}
+				opts.ApplyOptions(WithStreamOptions(streamOpts))
+			},
+			verify: func(t *testing.T, opts *CallOptions) {
+				if len(opts.StreamOptions) != 1 {
+					t.Errorf("Expected 1 stream option, got %d", len(opts.StreamOptions))
+					return
+				}
+				if opts.StreamOptions["include_usage"] != true {
+					t.Errorf("Expected include_usage -> true, got %v", opts.StreamOptions["include_usage"])
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := DefaultCallOptions()
+			tt.applyOptions(opts)
+			tt.verify(t, opts)
+		})
+	}
+}
+
+// 测试组合多个Python对标参数
+func TestCallOptions_CombinedPythonOptions(t *testing.T) {
+	opts := DefaultCallOptions()
+
+	// 应用多个Python对标参数
+	opts.ApplyOptions(
+		WithMaxCompletionTokens(1000),
+		WithFrequencyPenalty(0.1),
+		WithPresencePenalty(0.2),
+		WithN(2),
+		WithSeed(42),
+		WithUser("test_user"),
+		WithLogitBias(map[int]float64{100: -50}),
+	)
+
+	// 验证所有参数都被正确设置
+	if opts.MaxCompletionTokens == nil || *opts.MaxCompletionTokens != 1000 {
+		t.Errorf("Expected MaxCompletionTokens 1000, got %v", opts.MaxCompletionTokens)
+	}
+	if opts.FrequencyPenalty == nil || *opts.FrequencyPenalty != 0.1 {
+		t.Errorf("Expected FrequencyPenalty 0.1, got %v", opts.FrequencyPenalty)
+	}
+	if opts.PresencePenalty == nil || *opts.PresencePenalty != 0.2 {
+		t.Errorf("Expected PresencePenalty 0.2, got %v", opts.PresencePenalty)
+	}
+	if opts.N == nil || *opts.N != 2 {
+		t.Errorf("Expected N 2, got %v", opts.N)
+	}
+	if opts.Seed == nil || *opts.Seed != 42 {
+		t.Errorf("Expected Seed 42, got %v", opts.Seed)
+	}
+	if opts.User != "test_user" {
+		t.Errorf("Expected User 'test_user', got '%s'", opts.User)
+	}
+	if opts.LogitBias[100] != -50 {
+		t.Errorf("Expected LogitBias[100] = -50, got %v", opts.LogitBias[100])
+	}
+}

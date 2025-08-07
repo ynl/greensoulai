@@ -42,6 +42,10 @@ type BaseAgent struct {
 	systemTemplate string
 	promptTemplate string
 	callbacks      []func(context.Context, *TaskOutput) error
+	stepCallback   func(context.Context, *AgentStep) error // 对标Python的step_callback
+
+	// 新增Python版本对标功能
+	reasoningHandler ReasoningHandler // 推理处理器
 
 	// 统计和状态
 	stats         ExecutionStats
@@ -98,6 +102,7 @@ func NewBaseAgent(config AgentConfig) (*BaseAgent, error) {
 		systemTemplate:    config.SystemTemplate,
 		promptTemplate:    config.PromptTemplate,
 		callbacks:         config.Callbacks,
+		stepCallback:      config.StepCallback, // 新增步骤回调
 		stats: ExecutionStats{
 			TotalExecutions:      0,
 			SuccessfulExecutions: 0,
@@ -287,6 +292,17 @@ func (a *BaseAgent) ExecuteWithTimeout(ctx context.Context, task Task, timeout t
 
 // executeCore 执行任务的核心逻辑
 func (a *BaseAgent) executeCore(ctx context.Context, task Task) (*TaskOutput, error) {
+	// 检查是否启用推理功能，对标Python的reasoning
+	if a.executionConfig.EnableReasoning && a.reasoningHandler != nil {
+		if err := a.handleReasoning(ctx, task); err != nil {
+			a.logger.Error("Reasoning process failed",
+				logger.Field{Key: "task_id", Value: task.GetID()},
+				logger.Field{Key: "error", Value: err},
+			)
+			// 推理失败不应该阻止任务执行，继续正常流程
+		}
+	}
+
 	// 构建任务提示
 	prompt, err := a.buildTaskPrompt(ctx, task)
 	if err != nil {
@@ -818,4 +834,108 @@ func (a *BaseAgent) Clone() Agent {
 
 	clonedAgent, _ := NewBaseAgent(config)
 	return clonedAgent
+}
+
+// handleReasoning 处理推理逻辑，对标Python版本的reasoning功能
+func (a *BaseAgent) handleReasoning(ctx context.Context, task Task) error {
+	if a.reasoningHandler == nil {
+		return fmt.Errorf("reasoning handler not configured")
+	}
+
+	a.logger.Info("Starting reasoning process",
+		logger.Field{Key: "agent", Value: a.role},
+		logger.Field{Key: "task_id", Value: task.GetID()},
+	)
+
+	// 发射推理开始事件
+	if a.eventBus != nil {
+		startEvent := NewAgentReasoningStartedEvent(a.id, a.role, task.GetID(), 1)
+		a.eventBus.Emit(ctx, a, startEvent)
+	}
+
+	startTime := time.Now()
+	reasoningOutput, err := a.reasoningHandler.HandleReasoning(ctx, task, a)
+	duration := time.Since(startTime)
+
+	if err != nil {
+		// 发射推理错误事件
+		if a.eventBus != nil {
+			errorEvent := NewAgentReasoningErrorEvent(a.id, a.role, task.GetID(), err.Error())
+			a.eventBus.Emit(ctx, a, errorEvent)
+		}
+		return fmt.Errorf("reasoning failed: %w", err)
+	}
+
+	if reasoningOutput.Success && reasoningOutput.FinalReady {
+		// 将推理计划添加到任务描述中，完全对标Python逻辑
+		originalDescription := task.GetDescription()
+		enhancedDescription := fmt.Sprintf("%s\n\nReasoning Plan:\n%s",
+			originalDescription, reasoningOutput.Plan.Plan)
+
+		// 如果Task支持SetDescription，我们需要添加这个方法
+		if setter, ok := task.(interface{ SetDescription(string) }); ok {
+			setter.SetDescription(enhancedDescription)
+		}
+
+		a.logger.Info("Reasoning completed successfully",
+			logger.Field{Key: "agent", Value: a.role},
+			logger.Field{Key: "task_id", Value: task.GetID()},
+			logger.Field{Key: "duration", Value: duration},
+			logger.Field{Key: "iterations", Value: reasoningOutput.Iterations},
+		)
+
+		// 发射推理完成事件
+		if a.eventBus != nil {
+			completedEvent := NewAgentReasoningCompletedEvent(
+				a.id, a.role, task.GetID(), duration, reasoningOutput.Iterations, true)
+			a.eventBus.Emit(ctx, a, completedEvent)
+		}
+	}
+
+	return nil
+}
+
+// executeStepCallback 执行步骤回调，对标Python的step_callback
+func (a *BaseAgent) executeStepCallback(ctx context.Context, step *AgentStep) error {
+	if a.stepCallback == nil {
+		return nil
+	}
+
+	if a.executionConfig.Verbose {
+		a.logger.Info("Executing step callback",
+			logger.Field{Key: "step_id", Value: step.StepID},
+			logger.Field{Key: "step_type", Value: step.StepType},
+			logger.Field{Key: "description", Value: step.Description},
+		)
+	}
+
+	return a.stepCallback(ctx, step)
+}
+
+// SetReasoningHandler 设置推理处理器
+func (a *BaseAgent) SetReasoningHandler(handler ReasoningHandler) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.reasoningHandler = handler
+}
+
+// GetReasoningHandler 获取推理处理器
+func (a *BaseAgent) GetReasoningHandler() ReasoningHandler {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.reasoningHandler
+}
+
+// SetStepCallback 设置步骤回调
+func (a *BaseAgent) SetStepCallback(callback func(context.Context, *AgentStep) error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.stepCallback = callback
+}
+
+// GetStepCallback 获取步骤回调
+func (a *BaseAgent) GetStepCallback() func(context.Context, *AgentStep) error {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.stepCallback
 }

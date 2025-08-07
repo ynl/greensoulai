@@ -721,3 +721,212 @@ func BenchmarkBaseAgent_Execute(b *testing.B) {
 		}
 	}
 }
+
+// 新增：测试推理功能相关的方法
+func TestBaseAgent_ReasoningFeatures(t *testing.T) {
+	tests := []struct {
+		name string
+		test func(*testing.T)
+	}{
+		{
+			name: "set_and_get_reasoning_handler",
+			test: func(t *testing.T) {
+				mockResponse := &llm.Response{
+					Content: "Test response",
+					Usage: llm.Usage{
+						TotalTokens: 10,
+					},
+				}
+				mockLLM := NewMockLLM(mockResponse, false)
+				testLogger := logger.NewTestLogger()
+
+				config := AgentConfig{
+					Role:      "Test Agent",
+					Goal:      "Test goal",
+					Backstory: "Test backstory",
+					LLM:       mockLLM,
+					Logger:    testLogger,
+				}
+
+				agent, err := NewBaseAgent(config)
+				if err != nil {
+					t.Fatalf("failed to create agent: %v", err)
+				}
+
+				// 创建mock推理处理器
+				mockHandler := &MockReasoningHandler{}
+
+				// 设置推理处理器
+				agent.SetReasoningHandler(mockHandler)
+
+				// 验证可以获取推理处理器
+				handler := agent.GetReasoningHandler()
+				if handler != mockHandler {
+					t.Error("Expected reasoning handler to be set correctly")
+				}
+			},
+		},
+		{
+			name: "set_and_get_step_callback",
+			test: func(t *testing.T) {
+				mockResponse := &llm.Response{
+					Content: "Test response",
+					Usage: llm.Usage{
+						TotalTokens: 10,
+					},
+				}
+				mockLLM := NewMockLLM(mockResponse, false)
+				testLogger := logger.NewTestLogger()
+
+				config := AgentConfig{
+					Role:      "Test Agent",
+					Goal:      "Test goal",
+					Backstory: "Test backstory",
+					LLM:       mockLLM,
+					Logger:    testLogger,
+				}
+
+				agent, err := NewBaseAgent(config)
+				if err != nil {
+					t.Fatalf("failed to create agent: %v", err)
+				}
+
+				// 创建步骤回调函数
+				callbackCalled := false
+				stepCallback := func(ctx context.Context, step *AgentStep) error {
+					callbackCalled = true
+					return nil
+				}
+
+				// 设置步骤回调
+				agent.SetStepCallback(stepCallback)
+
+				// 验证可以获取步骤回调
+				callback := agent.GetStepCallback()
+				if callback == nil {
+					t.Error("Expected step callback to be set")
+					return
+				}
+
+				// 测试回调函数工作正常
+				testStep := &AgentStep{
+					StepID:      "test_step",
+					StepType:    "test",
+					Description: "Test step",
+				}
+				err = callback(context.Background(), testStep)
+				if err != nil {
+					t.Errorf("Callback failed: %v", err)
+				}
+				if !callbackCalled {
+					t.Error("Expected callback to be called")
+				}
+			},
+		},
+		{
+			name: "reasoning_handler_nil_check",
+			test: func(t *testing.T) {
+				mockResponse := &llm.Response{
+					Content: "Test response",
+					Usage: llm.Usage{
+						TotalTokens: 10,
+					},
+				}
+				mockLLM := NewMockLLM(mockResponse, false)
+				testLogger := logger.NewTestLogger()
+
+				config := AgentConfig{
+					Role:      "Test Agent",
+					Goal:      "Test goal",
+					Backstory: "Test backstory",
+					LLM:       mockLLM,
+					Logger:    testLogger,
+				}
+
+				agent, err := NewBaseAgent(config)
+				if err != nil {
+					t.Fatalf("failed to create agent: %v", err)
+				}
+
+				// 默认推理处理器应该为nil
+				handler := agent.GetReasoningHandler()
+				if handler != nil {
+					t.Error("Expected reasoning handler to be nil by default")
+				}
+			},
+		},
+		{
+			name: "step_callback_nil_check",
+			test: func(t *testing.T) {
+				mockResponse := &llm.Response{
+					Content: "Test response",
+					Usage: llm.Usage{
+						TotalTokens: 10,
+					},
+				}
+				mockLLM := NewMockLLM(mockResponse, false)
+				testLogger := logger.NewTestLogger()
+
+				config := AgentConfig{
+					Role:      "Test Agent",
+					Goal:      "Test goal",
+					Backstory: "Test backstory",
+					LLM:       mockLLM,
+					Logger:    testLogger,
+				}
+
+				agent, err := NewBaseAgent(config)
+				if err != nil {
+					t.Fatalf("failed to create agent: %v", err)
+				}
+
+				// 默认步骤回调应该为nil
+				callback := agent.GetStepCallback()
+				if callback != nil {
+					t.Error("Expected step callback to be nil by default")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, tt.test)
+	}
+}
+
+// Mock推理处理器用于测试
+type MockReasoningHandler struct{}
+
+func (m *MockReasoningHandler) HandleReasoning(ctx context.Context, task Task, agent Agent) (*ReasoningOutput, error) {
+	return &ReasoningOutput{
+		Plan: ReasoningPlan{
+			Plan:  "Mock reasoning plan",
+			Ready: true,
+		},
+		Success:    true,
+		Duration:   time.Millisecond * 100,
+		Iterations: 1,
+		FinalReady: true,
+		Metadata:   make(map[string]interface{}),
+		CreatedAt:  time.Now(),
+	}, nil
+}
+
+func (m *MockReasoningHandler) CreatePlan(ctx context.Context, task Task, agent Agent) (*ReasoningPlan, error) {
+	return &ReasoningPlan{
+		Plan:  "Mock plan",
+		Ready: true,
+	}, nil
+}
+
+func (m *MockReasoningHandler) RefinePlan(ctx context.Context, plan *ReasoningPlan, feedback string) (*ReasoningPlan, error) {
+	return plan, nil
+}
+
+func (m *MockReasoningHandler) IsReady(plan *ReasoningPlan) bool {
+	return plan != nil && plan.Ready
+}
+
+func (m *MockReasoningHandler) GetPlanSteps(plan *ReasoningPlan) []ReasoningStep {
+	return []ReasoningStep{}
+}

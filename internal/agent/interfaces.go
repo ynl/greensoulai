@@ -61,6 +61,7 @@ type Agent interface {
 type Task interface {
 	GetID() string
 	GetDescription() string
+	SetDescription(description string) // 新增：支持推理功能修改任务描述
 	GetExpectedOutput() string
 	GetContext() map[string]interface{}
 	IsHumanInputRequired() bool
@@ -69,6 +70,37 @@ type Task interface {
 	GetOutputFormat() OutputFormat
 	GetTools() []Tool
 	Validate() error
+
+	// 支持任务预分配Agent，对标Python版本的task.agent
+	GetAssignedAgent() Agent
+	SetAssignedAgent(agent Agent) error
+
+	// 支持异步执行，对标Python版本的task.async_execution
+	IsAsyncExecution() bool
+	SetAsyncExecution(async bool)
+
+	// 任务上下文设置，对标Python版本的task.context
+	SetContext(context map[string]interface{})
+
+	// 新增Python版本对标功能
+	GetName() string
+	SetName(name string)
+	GetOutputFile() string
+	SetOutputFile(filename string) error
+	GetCreateDirectory() bool
+	SetCreateDirectory(create bool)
+	GetCallback() func(context.Context, *TaskOutput) error
+	SetCallback(callback func(context.Context, *TaskOutput) error)
+	GetContextTasks() []Task // 对标Python的context: List[Task]
+	SetContextTasks(tasks []Task)
+	GetRetryCount() int
+	GetMaxRetries() int
+	SetMaxRetries(maxRetries int)
+	HasGuardrail() bool
+	SetGuardrail(guardrail TaskGuardrail)
+	GetGuardrail() TaskGuardrail
+	IsMarkdownOutput() bool
+	SetMarkdownOutput(markdown bool)
 }
 
 // Tool 代表工具的接口
@@ -134,6 +166,11 @@ type ExecutionConfig struct {
 	Temperature      float64       `json:"temperature"`
 	CacheEnabled     bool          `json:"cache_enabled"`
 	MaxRetryLimit    int           `json:"max_retry_limit"`
+
+	// 新增Python版本对标功能
+	EnableReasoning    bool    `json:"enable_reasoning"` // 对标Python的reasoning
+	Verbose            bool    `json:"verbose"`          // 对标Python的verbose
+	FunctionCallingLLM llm.LLM `json:"-"`                // 对标Python的function_calling_llm
 }
 
 // TaskOutput 代表任务执行的输出
@@ -279,6 +316,7 @@ type AgentConfig struct {
 	SystemTemplate    string                                     `json:"system_template"`
 	PromptTemplate    string                                     `json:"prompt_template"`
 	Callbacks         []func(context.Context, *TaskOutput) error `json:"-"`
+	StepCallback      func(context.Context, *AgentStep) error    `json:"-"` // 对标Python的step_callback
 }
 
 // DefaultExecutionConfig 返回默认的执行配置
@@ -307,4 +345,91 @@ func DefaultQueryOptions() QueryOptions {
 		Metadata:  make(map[string]interface{}),
 		Filters:   make([]QueryFilter, 0),
 	}
+}
+
+// ReasoningPlan 代表推理计划结构，对标Python版本
+type ReasoningPlan struct {
+	Plan       string                 `json:"plan"`
+	Ready      bool                   `json:"ready"`
+	Steps      []ReasoningStep        `json:"steps"`
+	Metadata   map[string]interface{} `json:"metadata"`
+	CreatedAt  time.Time              `json:"created_at"`
+	Refined    bool                   `json:"refined"`
+	Iterations int                    `json:"iterations"`
+}
+
+// ReasoningStep 代表推理步骤
+type ReasoningStep struct {
+	ID          string                 `json:"id"`
+	Description string                 `json:"description"`
+	Action      string                 `json:"action"`
+	Expected    string                 `json:"expected"`
+	Completed   bool                   `json:"completed"`
+	Result      string                 `json:"result"`
+	Metadata    map[string]interface{} `json:"metadata"`
+}
+
+// ReasoningOutput 代表推理输出结果，对标Python的AgentReasoningOutput
+type ReasoningOutput struct {
+	Plan       ReasoningPlan          `json:"plan"`
+	Success    bool                   `json:"success"`
+	Error      error                  `json:"error,omitempty"`
+	Duration   time.Duration          `json:"duration"`
+	Iterations int                    `json:"iterations"`
+	FinalReady bool                   `json:"final_ready"`
+	Metadata   map[string]interface{} `json:"metadata"`
+	CreatedAt  time.Time              `json:"created_at"`
+}
+
+// AgentStep 代表Agent执行步骤，对标Python的step_callback
+type AgentStep struct {
+	StepID      string                 `json:"step_id"`
+	StepType    string                 `json:"step_type"`
+	Description string                 `json:"description"`
+	Input       interface{}            `json:"input"`
+	Output      interface{}            `json:"output"`
+	Duration    time.Duration          `json:"duration"`
+	Success     bool                   `json:"success"`
+	Error       error                  `json:"error,omitempty"`
+	ToolUsed    string                 `json:"tool_used,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata"`
+	Timestamp   time.Time              `json:"timestamp"`
+}
+
+// ReasoningHandler 推理处理器接口，对标Python的AgentReasoning
+type ReasoningHandler interface {
+	HandleReasoning(ctx context.Context, task Task, agent Agent) (*ReasoningOutput, error)
+	CreatePlan(ctx context.Context, task Task, agent Agent) (*ReasoningPlan, error)
+	RefinePlan(ctx context.Context, plan *ReasoningPlan, feedback string) (*ReasoningPlan, error)
+	IsReady(plan *ReasoningPlan) bool
+	GetPlanSteps(plan *ReasoningPlan) []ReasoningStep
+}
+
+// TaskGuardrail 任务护栏接口，对标Python版本的guardrail功能
+type TaskGuardrail interface {
+	Validate(ctx context.Context, output *TaskOutput) (*GuardrailResult, error)
+	GetDescription() string
+	GetType() string // 护栏类型：LLM、Rule、Custom等
+}
+
+// GuardrailResult 护栏验证结果，对标Python的GuardrailResult
+type GuardrailResult struct {
+	Success    bool                   `json:"success"`
+	Valid      bool                   `json:"valid"`
+	Error      string                 `json:"error,omitempty"`
+	Feedback   string                 `json:"feedback,omitempty"`
+	Result     interface{}            `json:"result,omitempty"`
+	RetryCount int                    `json:"retry_count"`
+	Metadata   map[string]interface{} `json:"metadata"`
+	Duration   time.Duration          `json:"duration"`
+	CreatedAt  time.Time              `json:"created_at"`
+}
+
+// ConditionalTask 条件任务接口，对标Python的ConditionalTask
+type ConditionalTask interface {
+	Task
+	ShouldExecute(ctx context.Context, context *TaskOutput) (bool, error)
+	GetCondition() func(*TaskOutput) bool
+	SetCondition(condition func(*TaskOutput) bool)
+	GetSkippedTaskOutput() *TaskOutput
 }

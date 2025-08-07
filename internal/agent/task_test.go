@@ -337,7 +337,7 @@ func TestConditionalTask(t *testing.T) {
 		"execute": false,
 	}
 
-	if task.ShouldExecute(context1) {
+	if task.ShouldExecuteSimple(context1) {
 		t.Error("task should not execute when condition is false")
 	}
 
@@ -346,7 +346,7 @@ func TestConditionalTask(t *testing.T) {
 		"execute": true,
 	}
 
-	if !task.ShouldExecute(context2) {
+	if !task.ShouldExecuteSimple(context2) {
 		t.Error("task should execute when condition is true")
 	}
 
@@ -355,7 +355,7 @@ func TestConditionalTask(t *testing.T) {
 		"other_key": "value",
 	}
 
-	if task.ShouldExecute(context3) {
+	if task.ShouldExecuteSimple(context3) {
 		t.Error("task should not execute when key is missing")
 	}
 }

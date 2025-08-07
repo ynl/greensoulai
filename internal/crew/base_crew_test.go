@@ -198,6 +198,28 @@ func (m *MockTask) Validate() error {
 	return nil
 }
 
+// 实现新的Task接口方法，对标Python版本
+
+func (m *MockTask) GetAssignedAgent() agent.Agent {
+	return nil // Mock Task默认没有预分配Agent
+}
+
+func (m *MockTask) SetAssignedAgent(agent agent.Agent) error {
+	return nil // Mock实现，不做实际存储
+}
+
+func (m *MockTask) IsAsyncExecution() bool {
+	return false // Mock Task默认同步执行
+}
+
+func (m *MockTask) SetAsyncExecution(async bool) {
+	// Mock实现，不做实际存储
+}
+
+func (m *MockTask) SetContext(context map[string]interface{}) {
+	// Mock实现，不做实际存储
+}
+
 func TestNewBaseCrew(t *testing.T) {
 	logger := logger.NewTestLogger()
 	eventBus := events.NewEventBus(logger)

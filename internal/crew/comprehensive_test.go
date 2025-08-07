@@ -102,9 +102,19 @@ func testContextPassing(t *testing.T) {
 	}
 
 	task3Context := task3.GetContext()
-	if task3Context["previous_tasks_output"] == nil {
-		t.Error("Task 3 should have received all previous task outputs")
+
+	// 验证Python版本对齐的上下文传递机制
+	if task3Context["aggregated_context"] == nil {
+		t.Error("Task 3 should have received aggregated context (Python-style)")
 	}
+
+	// 验证聚合上下文包含正确的分隔符格式
+	if aggregatedCtx, ok := task3Context["aggregated_context"].(string); ok {
+		if !strings.Contains(aggregatedCtx, "----------") {
+			t.Error("Aggregated context should contain Python-style dividers")
+		}
+	}
+
 	if len(task3Context) < 5 { // 应该有inputs + crew info + task outputs
 		t.Errorf("Task 3 context seems incomplete, got %d keys", len(task3Context))
 	}
@@ -562,4 +572,13 @@ func createTestAgent(role, goal string, mockLLM llm.LLM, eventBus events.EventBu
 	}
 
 	return ag, ag.Initialize()
+}
+
+// 辅助函数：获取map的所有键
+func getMapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }

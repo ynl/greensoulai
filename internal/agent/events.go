@@ -416,3 +416,151 @@ func NewAgentHumanInputReceivedEvent(agentID, agent, taskID, input string, durat
 		Duration: duration,
 	}
 }
+
+// AgentReasoningStartedEvent 代表Agent开始推理的事件，对标Python版本
+type AgentReasoningStartedEvent struct {
+	events.BaseEvent
+	AgentID string `json:"agent_id"`
+	Agent   string `json:"agent"`
+	TaskID  string `json:"task_id"`
+	Attempt int    `json:"attempt"`
+}
+
+// AgentReasoningCompletedEvent 代表Agent完成推理的事件
+type AgentReasoningCompletedEvent struct {
+	events.BaseEvent
+	AgentID    string        `json:"agent_id"`
+	Agent      string        `json:"agent"`
+	TaskID     string        `json:"task_id"`
+	Duration   time.Duration `json:"duration"`
+	Iterations int           `json:"iterations"`
+	Success    bool          `json:"success"`
+}
+
+// AgentReasoningErrorEvent 代表Agent推理过程出错的事件
+type AgentReasoningErrorEvent struct {
+	events.BaseEvent
+	AgentID string `json:"agent_id"`
+	Agent   string `json:"agent"`
+	TaskID  string `json:"task_id"`
+	Error   string `json:"error"`
+}
+
+// AgentStepExecutedEvent 代表Agent执行步骤的事件，对标Python的step_callback
+type AgentStepExecutedEvent struct {
+	events.BaseEvent
+	AgentID     string        `json:"agent_id"`
+	Agent       string        `json:"agent"`
+	TaskID      string        `json:"task_id"`
+	StepID      string        `json:"step_id"`
+	StepType    string        `json:"step_type"`
+	Description string        `json:"description"`
+	Duration    time.Duration `json:"duration"`
+	Success     bool          `json:"success"`
+	Error       string        `json:"error,omitempty"`
+}
+
+// NewAgentReasoningStartedEvent 创建Agent推理开始事件
+func NewAgentReasoningStartedEvent(agentID, agent, taskID string, attempt int) *AgentReasoningStartedEvent {
+	return &AgentReasoningStartedEvent{
+		BaseEvent: events.BaseEvent{
+			Type:      "agent_reasoning_started",
+			Timestamp: time.Now(),
+			Source:    agent,
+			Payload: map[string]interface{}{
+				"agent_id": agentID,
+				"agent":    agent,
+				"task_id":  taskID,
+				"attempt":  attempt,
+			},
+		},
+		AgentID: agentID,
+		Agent:   agent,
+		TaskID:  taskID,
+		Attempt: attempt,
+	}
+}
+
+// NewAgentReasoningCompletedEvent 创建Agent推理完成事件
+func NewAgentReasoningCompletedEvent(agentID, agent, taskID string, duration time.Duration, iterations int, success bool) *AgentReasoningCompletedEvent {
+	return &AgentReasoningCompletedEvent{
+		BaseEvent: events.BaseEvent{
+			Type:      "agent_reasoning_completed",
+			Timestamp: time.Now(),
+			Source:    agent,
+			Payload: map[string]interface{}{
+				"agent_id":    agentID,
+				"agent":       agent,
+				"task_id":     taskID,
+				"duration_ms": duration.Milliseconds(),
+				"iterations":  iterations,
+				"success":     success,
+			},
+		},
+		AgentID:    agentID,
+		Agent:      agent,
+		TaskID:     taskID,
+		Duration:   duration,
+		Iterations: iterations,
+		Success:    success,
+	}
+}
+
+// NewAgentReasoningErrorEvent 创建Agent推理错误事件
+func NewAgentReasoningErrorEvent(agentID, agent, taskID, errorMsg string) *AgentReasoningErrorEvent {
+	return &AgentReasoningErrorEvent{
+		BaseEvent: events.BaseEvent{
+			Type:      "agent_reasoning_error",
+			Timestamp: time.Now(),
+			Source:    agent,
+			Payload: map[string]interface{}{
+				"agent_id": agentID,
+				"agent":    agent,
+				"task_id":  taskID,
+				"error":    errorMsg,
+			},
+		},
+		AgentID: agentID,
+		Agent:   agent,
+		TaskID:  taskID,
+		Error:   errorMsg,
+	}
+}
+
+// NewAgentStepExecutedEvent 创建Agent步骤执行事件
+func NewAgentStepExecutedEvent(agentID, agent, taskID, stepID, stepType, description string, duration time.Duration, success bool, err error) *AgentStepExecutedEvent {
+	payload := map[string]interface{}{
+		"agent_id":    agentID,
+		"agent":       agent,
+		"task_id":     taskID,
+		"step_id":     stepID,
+		"step_type":   stepType,
+		"description": description,
+		"duration_ms": duration.Milliseconds(),
+		"success":     success,
+	}
+
+	event := &AgentStepExecutedEvent{
+		BaseEvent: events.BaseEvent{
+			Type:      "agent_step_executed",
+			Timestamp: time.Now(),
+			Source:    agent,
+			Payload:   payload,
+		},
+		AgentID:     agentID,
+		Agent:       agent,
+		TaskID:      taskID,
+		StepID:      stepID,
+		StepType:    stepType,
+		Description: description,
+		Duration:    duration,
+		Success:     success,
+	}
+
+	if !success && err != nil {
+		event.Error = err.Error()
+		payload["error"] = err.Error()
+	}
+
+	return event
+}

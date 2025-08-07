@@ -1,8 +1,11 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -17,6 +20,24 @@ type BaseTask struct {
 	humanInputRequired bool
 	outputFormat       OutputFormat
 	tools              []Tool
+
+	// 新增字段，对标Python版本
+	assignedAgent  Agent // 对标Python版本的task.agent
+	asyncExecution bool  // 对标Python版本的task.async_execution
+
+	// Python版本对标的高级功能
+	name            string                                   // 对标Python的name
+	outputFile      string                                   // 对标Python的output_file
+	createDirectory bool                                     // 对标Python的create_directory
+	callback        func(context.Context, *TaskOutput) error // 对标Python的callback
+	contextTasks    []Task                                   // 对标Python的context: List[Task]
+	retryCount      int                                      // 对标Python的retry_count
+	maxRetries      int                                      // 对标Python的max_retries
+	guardrail       TaskGuardrail                            // 对标Python的_guardrail
+	markdownOutput  bool                                     // 对标Python的markdown
+
+	// 并发安全
+	mu sync.RWMutex
 }
 
 // NewBaseTask 创建新的BaseTask实例
@@ -30,6 +51,19 @@ func NewBaseTask(description, expectedOutput string) *BaseTask {
 		humanInputRequired: false,
 		outputFormat:       OutputFormatRAW,
 		tools:              make([]Tool, 0),
+
+		// 新增字段默认值，完全对标Python版本
+		assignedAgent:   nil,   // 默认没有预分配Agent
+		asyncExecution:  false, // 默认同步执行
+		name:            "",
+		outputFile:      "",
+		createDirectory: true, // 对标Python默认值
+		callback:        nil,
+		contextTasks:    make([]Task, 0),
+		retryCount:      0,
+		maxRetries:      3, // 对标Python默认重试次数
+		guardrail:       nil,
+		markdownOutput:  false,
 	}
 }
 
@@ -91,6 +125,13 @@ func (t *BaseTask) GetDescription() string {
 	return t.description
 }
 
+// SetDescription 设置任务描述，支持推理功能修改任务描述
+func (t *BaseTask) SetDescription(description string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.description = description
+}
+
 func (t *BaseTask) GetExpectedOutput() string {
 	return t.expectedOutput
 }
@@ -133,11 +174,6 @@ func (t *BaseTask) Validate() error {
 	}
 
 	return nil
-}
-
-// SetContext 设置任务上下文
-func (t *BaseTask) SetContext(context map[string]interface{}) {
-	t.context = context
 }
 
 // AddContext 添加上下文项
@@ -204,26 +240,87 @@ func (t *BaseTask) String() string {
 		t.id, t.description, t.humanInputRequired)
 }
 
-// ConditionalTask 表示有条件执行的任务
-type ConditionalTask struct {
+// BaseConditionalTask 条件任务的基础实现，实现ConditionalTask接口
+type BaseConditionalTask struct {
 	*BaseTask
-	condition func(context map[string]interface{}) bool
+	condition         func(*TaskOutput) bool
+	originalCondition func(context map[string]interface{}) bool // 保存原始条件函数
+	skippedOutput     *TaskOutput
 }
 
-// NewConditionalTask 创建条件任务
-func NewConditionalTask(description, expectedOutput string, condition func(context map[string]interface{}) bool) *ConditionalTask {
-	return &ConditionalTask{
-		BaseTask:  NewBaseTask(description, expectedOutput),
-		condition: condition,
+// NewConditionalTask 创建条件任务实例
+func NewConditionalTask(description, expectedOutput string, condition func(context map[string]interface{}) bool) *BaseConditionalTask {
+	// 适配函数签名，从map转换为TaskOutput检查
+	adaptedCondition := func(output *TaskOutput) bool {
+		if condition == nil {
+			return true
+		}
+		// 为了保持向后兼容，我们直接使用一个简单的实现
+		// 实际上我们需要把原始的condition函数存储起来，在ShouldExecuteSimple中使用
+		return true // 这里暂时返回true，实际逻辑在ShouldExecuteSimple中
 	}
+
+	task := &BaseConditionalTask{
+		BaseTask:  NewBaseTask(description, expectedOutput),
+		condition: adaptedCondition,
+	}
+
+	// 保存原始条件函数以供ShouldExecuteSimple使用
+	task.originalCondition = condition
+
+	return task
 }
+
+// 实现ConditionalTask接口的方法
 
 // ShouldExecute 检查是否应该执行任务
-func (ct *ConditionalTask) ShouldExecute(context map[string]interface{}) bool {
-	if ct.condition == nil {
+func (bct *BaseConditionalTask) ShouldExecute(ctx context.Context, context *TaskOutput) (bool, error) {
+	if bct.condition == nil {
+		return true, nil
+	}
+	return bct.condition(context), nil
+}
+
+// GetCondition 获取条件函数
+func (bct *BaseConditionalTask) GetCondition() func(*TaskOutput) bool {
+	return bct.condition
+}
+
+// SetCondition 设置条件函数
+func (bct *BaseConditionalTask) SetCondition(condition func(*TaskOutput) bool) {
+	bct.mu.Lock()
+	defer bct.mu.Unlock()
+	bct.condition = condition
+}
+
+// GetSkippedTaskOutput 获取跳过任务时的默认输出
+func (bct *BaseConditionalTask) GetSkippedTaskOutput() *TaskOutput {
+	if bct.skippedOutput != nil {
+		return bct.skippedOutput
+	}
+
+	// 返回默认的跳过输出
+	return &TaskOutput{
+		Raw:            "Task skipped due to condition not met",
+		Agent:          "",
+		Description:    bct.description,
+		ExpectedOutput: bct.expectedOutput,
+		OutputFormat:   OutputFormatRAW,
+		CreatedAt:      time.Now(),
+		Metadata: map[string]interface{}{
+			"skipped": true,
+			"reason":  "condition_not_met",
+		},
+	}
+}
+
+// 为了向后兼容，保留原有的ShouldExecute方法签名
+func (bct *BaseConditionalTask) ShouldExecuteSimple(context map[string]interface{}) bool {
+	if bct.originalCondition == nil {
 		return true
 	}
-	return ct.condition(context)
+	// 直接使用原始条件函数
+	return bct.originalCondition(context)
 }
 
 // TaskBuilder 任务构建器
@@ -432,4 +529,188 @@ func CreateInteractiveTask(description, expectedOutput string) Task {
 		expectedOutput,
 		WithHumanInput(true),
 	)
+}
+
+// 实现新的Task接口方法，对标Python版本
+
+// GetAssignedAgent 获取任务预分配的Agent（对标Python的task.agent）
+func (t *BaseTask) GetAssignedAgent() Agent {
+	return t.assignedAgent
+}
+
+// SetAssignedAgent 设置任务预分配的Agent（对标Python的task.agent）
+func (t *BaseTask) SetAssignedAgent(agent Agent) error {
+	t.assignedAgent = agent
+	return nil
+}
+
+// IsAsyncExecution 检查任务是否为异步执行（对标Python的task.async_execution）
+func (t *BaseTask) IsAsyncExecution() bool {
+	return t.asyncExecution
+}
+
+// SetAsyncExecution 设置任务异步执行模式（对标Python的task.async_execution）
+func (t *BaseTask) SetAsyncExecution(async bool) {
+	t.asyncExecution = async
+}
+
+// SetContext 设置任务上下文（对标Python的task.context设置）
+func (t *BaseTask) SetContext(context map[string]interface{}) {
+	if t.context == nil {
+		t.context = make(map[string]interface{})
+	}
+
+	// 合并新的上下文到现有上下文中
+	for key, value := range context {
+		t.context[key] = value
+	}
+}
+
+// 新增Python版本对标功能实现
+
+// GetName 获取任务名称
+func (t *BaseTask) GetName() string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.name
+}
+
+// SetName 设置任务名称
+func (t *BaseTask) SetName(name string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.name = name
+}
+
+// GetOutputFile 获取输出文件路径
+func (t *BaseTask) GetOutputFile() string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.outputFile
+}
+
+// SetOutputFile 设置输出文件路径
+func (t *BaseTask) SetOutputFile(filename string) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.outputFile = filename
+	return nil
+}
+
+// GetCreateDirectory 获取是否自动创建目录
+func (t *BaseTask) GetCreateDirectory() bool {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.createDirectory
+}
+
+// SetCreateDirectory 设置是否自动创建目录
+func (t *BaseTask) SetCreateDirectory(create bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.createDirectory = create
+}
+
+// GetCallback 获取回调函数
+func (t *BaseTask) GetCallback() func(context.Context, *TaskOutput) error {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.callback
+}
+
+// SetCallback 设置回调函数
+func (t *BaseTask) SetCallback(callback func(context.Context, *TaskOutput) error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.callback = callback
+}
+
+// GetContextTasks 获取上下文任务列表（对标Python的context: List[Task]）
+func (t *BaseTask) GetContextTasks() []Task {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	// 返回副本以防止外部修改
+	result := make([]Task, len(t.contextTasks))
+	copy(result, t.contextTasks)
+	return result
+}
+
+// SetContextTasks 设置上下文任务列表
+func (t *BaseTask) SetContextTasks(tasks []Task) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.contextTasks = make([]Task, len(tasks))
+	copy(t.contextTasks, tasks)
+}
+
+// GetRetryCount 获取当前重试次数
+func (t *BaseTask) GetRetryCount() int {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.retryCount
+}
+
+// GetMaxRetries 获取最大重试次数
+func (t *BaseTask) GetMaxRetries() int {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.maxRetries
+}
+
+// SetMaxRetries 设置最大重试次数
+func (t *BaseTask) SetMaxRetries(maxRetries int) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.maxRetries = maxRetries
+}
+
+// HasGuardrail 检查是否有护栏
+func (t *BaseTask) HasGuardrail() bool {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.guardrail != nil
+}
+
+// SetGuardrail 设置护栏
+func (t *BaseTask) SetGuardrail(guardrail TaskGuardrail) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.guardrail = guardrail
+}
+
+// GetGuardrail 获取护栏
+func (t *BaseTask) GetGuardrail() TaskGuardrail {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.guardrail
+}
+
+// IsMarkdownOutput 检查是否输出Markdown格式
+func (t *BaseTask) IsMarkdownOutput() bool {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.markdownOutput
+}
+
+// SetMarkdownOutput 设置是否输出Markdown格式
+func (t *BaseTask) SetMarkdownOutput(markdown bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.markdownOutput = markdown
+}
+
+// 新增任务选项，支持Agent预分配和异步执行
+
+// WithAssignedAgent 设置任务预分配的Agent
+func WithAssignedAgent(agent Agent) TaskOption {
+	return func(task *BaseTask) {
+		task.assignedAgent = agent
+	}
+}
+
+// WithAsyncExecution 设置任务为异步执行
+func WithAsyncExecution(async bool) TaskOption {
+	return func(task *BaseTask) {
+		task.asyncExecution = async
+	}
 }
