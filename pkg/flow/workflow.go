@@ -13,11 +13,51 @@ import (
 // 核心接口 - 使用Job避免与Agent Task冲突
 // ============================================================================
 
+// ============================================================================
+// 工作流状态传递系统
+// ============================================================================
+
+// FlowState 工作流状态接口 - 用于在作业间传递和共享数据
+type FlowState interface {
+	// 基础操作
+	Get(key string) (interface{}, bool)
+	Set(key string, value interface{})
+	Delete(key string)
+	Keys() []string
+
+	// 类型安全的获取方法
+	GetString(key string) (string, bool)
+	GetInt(key string) (int, bool)
+	GetFloat64(key string) (float64, bool)
+	GetBool(key string) (bool, bool)
+	GetMap(key string) (map[string]interface{}, bool)
+	GetSlice(key string) ([]interface{}, bool)
+
+	// 批量操作
+	SetAll(data map[string]interface{})
+	GetAll() map[string]interface{}
+	Clear()
+
+	// 并发安全的操作
+	CompareAndSwap(key string, old, new interface{}) bool
+	GetOrSet(key string, defaultValue interface{}) interface{}
+
+	// 克隆和合并
+	Clone() FlowState
+	Merge(other FlowState)
+}
+
 // Job 定义工作流中的作业单元 - 可以并行执行
 // 注意：Job与Agent的Task不同，Job是工作流编排单元，Task是Agent执行的业务任务
 type Job interface {
 	ID() string
 	Execute(ctx context.Context) (interface{}, error)
+}
+
+// StatefulJob 支持状态传递的作业接口
+type StatefulJob interface {
+	Job
+	ExecuteWithState(ctx context.Context, state FlowState) (interface{}, error)
 }
 
 // Trigger 定义作业触发条件
@@ -44,6 +84,7 @@ type JobResults map[string]interface{}
 type ExecutionResult struct {
 	FinalResult interface{}      // 最后完成的作业结果
 	AllResults  JobResults       // 所有作业结果
+	FinalState  FlowState        // 最终工作流状态 - 包含作业间传递的数据
 	JobTrace    []JobExecution   // 作业执行追踪
 	Metrics     *ParallelMetrics // 并行执行指标
 	Duration    time.Duration    // 总执行时间
@@ -124,8 +165,12 @@ func (e *ParallelEngine) AddJob(job Job, trigger Trigger) Workflow {
 func (e *ParallelEngine) Run(ctx context.Context) (*ExecutionResult, error) {
 	startTime := time.Now()
 
+	// 创建工作流状态 - 支持作业间数据传递
+	flowState := NewFlowState()
+
 	result := &ExecutionResult{
 		AllResults: make(JobResults),
+		FinalState: flowState,
 		JobTrace:   make([]JobExecution, 0),
 		Metrics:    &ParallelMetrics{},
 	}
@@ -145,7 +190,7 @@ func (e *ParallelEngine) Run(ctx context.Context) (*ExecutionResult, error) {
 
 		// 🚀 关键：并行执行所有就绪的作业
 		batchID++
-		batchResults, batchMetrics, err := e.executeJobBatch(ctx, readyJobs, batchID)
+		batchResults, batchMetrics, err := e.executeJobBatch(ctx, readyJobs, batchID, flowState)
 		if err != nil {
 			result.Error = err
 			result.Duration = time.Since(startTime)
@@ -220,7 +265,7 @@ func (e *ParallelEngine) getReadyJobs(completed JobResults) []Job {
 }
 
 // executeJobBatch 批量并行执行作业 - 核心并行逻辑
-func (e *ParallelEngine) executeJobBatch(ctx context.Context, jobs []Job, batchID int) ([]JobExecution, BatchMetrics, error) {
+func (e *ParallelEngine) executeJobBatch(ctx context.Context, jobs []Job, batchID int, state FlowState) ([]JobExecution, BatchMetrics, error) {
 	if len(jobs) == 0 {
 		return nil, BatchMetrics{}, nil
 	}
@@ -241,8 +286,14 @@ func (e *ParallelEngine) executeJobBatch(ctx context.Context, jobs []Job, batchI
 				BatchID:   batchID,
 			}
 
-			// 执行作业
-			result, err := j.Execute(ctx)
+			// 执行作业 - 优先使用支持状态传递的接口
+			var result interface{}
+			var err error
+			if statefulJob, ok := j.(StatefulJob); ok {
+				result, err = statefulJob.ExecuteWithState(ctx, state)
+			} else {
+				result, err = j.Execute(ctx)
+			}
 
 			execution.EndTime = time.Now()
 			execution.Duration = execution.EndTime.Sub(execution.StartTime)
@@ -492,4 +543,242 @@ func NewAgentJob(id, description string) Job {
 		id:          id,
 		description: description,
 	}
+}
+
+// ============================================================================
+// FlowState 实现 - 线程安全的状态存储
+// ============================================================================
+
+// BaseFlowState FlowState接口的基础实现
+type BaseFlowState struct {
+	data map[string]interface{}
+	mu   sync.RWMutex
+}
+
+// NewFlowState 创建新的工作流状态
+func NewFlowState() FlowState {
+	return &BaseFlowState{
+		data: make(map[string]interface{}),
+	}
+}
+
+// NewFlowStateWithData 使用初始数据创建工作流状态
+func NewFlowStateWithData(initialData map[string]interface{}) FlowState {
+	state := &BaseFlowState{
+		data: make(map[string]interface{}),
+	}
+	if initialData != nil {
+		for k, v := range initialData {
+			state.data[k] = v
+		}
+	}
+	return state
+}
+
+// 基础操作
+func (fs *BaseFlowState) Get(key string) (interface{}, bool) {
+	fs.mu.RLock()
+	defer fs.mu.RUnlock()
+	value, exists := fs.data[key]
+	return value, exists
+}
+
+func (fs *BaseFlowState) Set(key string, value interface{}) {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	fs.data[key] = value
+}
+
+func (fs *BaseFlowState) Delete(key string) {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	delete(fs.data, key)
+}
+
+func (fs *BaseFlowState) Keys() []string {
+	fs.mu.RLock()
+	defer fs.mu.RUnlock()
+	keys := make([]string, 0, len(fs.data))
+	for k := range fs.data {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// 类型安全的获取方法
+func (fs *BaseFlowState) GetString(key string) (string, bool) {
+	if value, exists := fs.Get(key); exists {
+		if str, ok := value.(string); ok {
+			return str, true
+		}
+	}
+	return "", false
+}
+
+func (fs *BaseFlowState) GetInt(key string) (int, bool) {
+	if value, exists := fs.Get(key); exists {
+		if i, ok := value.(int); ok {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+func (fs *BaseFlowState) GetFloat64(key string) (float64, bool) {
+	if value, exists := fs.Get(key); exists {
+		if f, ok := value.(float64); ok {
+			return f, true
+		}
+	}
+	return 0.0, false
+}
+
+func (fs *BaseFlowState) GetBool(key string) (bool, bool) {
+	if value, exists := fs.Get(key); exists {
+		if b, ok := value.(bool); ok {
+			return b, true
+		}
+	}
+	return false, false
+}
+
+func (fs *BaseFlowState) GetMap(key string) (map[string]interface{}, bool) {
+	if value, exists := fs.Get(key); exists {
+		if m, ok := value.(map[string]interface{}); ok {
+			return m, true
+		}
+	}
+	return nil, false
+}
+
+func (fs *BaseFlowState) GetSlice(key string) ([]interface{}, bool) {
+	if value, exists := fs.Get(key); exists {
+		if s, ok := value.([]interface{}); ok {
+			return s, true
+		}
+	}
+	return nil, false
+}
+
+// 批量操作
+func (fs *BaseFlowState) SetAll(data map[string]interface{}) {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	for k, v := range data {
+		fs.data[k] = v
+	}
+}
+
+func (fs *BaseFlowState) GetAll() map[string]interface{} {
+	fs.mu.RLock()
+	defer fs.mu.RUnlock()
+	result := make(map[string]interface{})
+	for k, v := range fs.data {
+		result[k] = v
+	}
+	return result
+}
+
+func (fs *BaseFlowState) Clear() {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	fs.data = make(map[string]interface{})
+}
+
+// 并发安全的操作
+func (fs *BaseFlowState) CompareAndSwap(key string, old, new interface{}) bool {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	if current, exists := fs.data[key]; exists {
+		if current == old {
+			fs.data[key] = new
+			return true
+		}
+	} else if old == nil {
+		fs.data[key] = new
+		return true
+	}
+	return false
+}
+
+func (fs *BaseFlowState) GetOrSet(key string, defaultValue interface{}) interface{} {
+	if value, exists := fs.Get(key); exists {
+		return value
+	}
+	fs.Set(key, defaultValue)
+	return defaultValue
+}
+
+// 克隆和合并
+func (fs *BaseFlowState) Clone() FlowState {
+	fs.mu.RLock()
+	defer fs.mu.RUnlock()
+	cloned := &BaseFlowState{
+		data: make(map[string]interface{}),
+	}
+	for k, v := range fs.data {
+		cloned.data[k] = v
+	}
+	return cloned
+}
+
+func (fs *BaseFlowState) Merge(other FlowState) {
+	if other == nil {
+		return
+	}
+	otherData := other.GetAll()
+	fs.SetAll(otherData)
+}
+
+// ============================================================================
+// 支持状态传递的作业实现
+// ============================================================================
+
+// StatefulJobFunc 支持状态传递的作业函数类型
+type StatefulJobFunc func(ctx context.Context, state FlowState) (interface{}, error)
+
+// statefulJobWrapper 将StatefulJobFunc包装为StatefulJob
+type statefulJobWrapper struct {
+	id string
+	fn StatefulJobFunc
+}
+
+func (sjw statefulJobWrapper) ID() string { return sjw.id }
+
+func (sjw statefulJobWrapper) Execute(ctx context.Context) (interface{}, error) {
+	// 如果没有状态，创建一个空状态
+	return sjw.ExecuteWithState(ctx, NewFlowState())
+}
+
+func (sjw statefulJobWrapper) ExecuteWithState(ctx context.Context, state FlowState) (interface{}, error) {
+	return sjw.fn(ctx, state)
+}
+
+// NewStatefulJob 创建支持状态传递的作业
+func NewStatefulJob(id string, fn StatefulJobFunc) StatefulJob {
+	return statefulJobWrapper{id: id, fn: fn}
+}
+
+// JobAdapter 将普通Job包装为StatefulJob
+type JobAdapter struct {
+	job Job
+}
+
+func (ja JobAdapter) ID() string { return ja.job.ID() }
+
+func (ja JobAdapter) Execute(ctx context.Context) (interface{}, error) {
+	return ja.job.Execute(ctx)
+}
+
+func (ja JobAdapter) ExecuteWithState(ctx context.Context, state FlowState) (interface{}, error) {
+	// 普通Job不使用状态，直接调用Execute
+	return ja.job.Execute(ctx)
+}
+
+// WrapJob 将普通Job包装为StatefulJob
+func WrapJob(job Job) StatefulJob {
+	if statefulJob, ok := job.(StatefulJob); ok {
+		return statefulJob
+	}
+	return JobAdapter{job: job}
 }

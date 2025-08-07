@@ -550,6 +550,103 @@ func BenchmarkParallelWorkflow(b *testing.B) {
 }
 
 // ============================================================================
+// 状态传递测试
+// ============================================================================
+
+func TestFlowStateBasicOperations(t *testing.T) {
+	state := NewFlowState()
+
+	// 基础设置和获取
+	state.Set("key1", "value1")
+
+	if value, exists := state.Get("key1"); !exists || value != "value1" {
+		t.Errorf("Expected value1, got %v, exists: %v", value, exists)
+	}
+
+	// 类型安全获取
+	if str, exists := state.GetString("key1"); !exists || str != "value1" {
+		t.Errorf("Expected value1, got %s, exists: %v", str, exists)
+	}
+
+	// 键列表
+	keys := state.Keys()
+	if len(keys) != 1 || keys[0] != "key1" {
+		t.Errorf("Expected keys [key1], got %v", keys)
+	}
+}
+
+func TestStatefulJobExecution(t *testing.T) {
+	ctx := context.Background()
+
+	// 创建支持状态的作业
+	setJob := NewStatefulJob("setter", func(ctx context.Context, state FlowState) (interface{}, error) {
+		state.Set("shared_data", "from_setter")
+		return "set_complete", nil
+	})
+
+	getJob := NewStatefulJob("getter", func(ctx context.Context, state FlowState) (interface{}, error) {
+		if data, exists := state.GetString("shared_data"); exists {
+			return "got_" + data, nil
+		}
+		return nil, fmt.Errorf("shared_data not found")
+	})
+
+	workflow := NewWorkflow("stateful-test").
+		AddJob(setJob, Immediately()).
+		AddJob(getJob, After("setter"))
+
+	result, err := workflow.Run(ctx)
+
+	if err != nil {
+		t.Fatalf("Workflow execution failed: %v", err)
+	}
+
+	if result.FinalResult != "got_from_setter" {
+		t.Errorf("Expected 'got_from_setter', got %v", result.FinalResult)
+	}
+
+	// 验证最终状态
+	if data, exists := result.FinalState.GetString("shared_data"); !exists || data != "from_setter" {
+		t.Errorf("Expected final state to contain 'from_setter', got %s, exists: %v", data, exists)
+	}
+}
+
+func TestMixedJobTypes(t *testing.T) {
+	ctx := context.Background()
+
+	// 普通作业
+	regularJob := NewJob("regular", func(ctx context.Context) (interface{}, error) {
+		return "regular_result", nil
+	})
+
+	// 支持状态的作业
+	statefulJob := NewStatefulJob("stateful", func(ctx context.Context, state FlowState) (interface{}, error) {
+		state.Set("stateful_data", "from_stateful")
+		return "stateful_result", nil
+	})
+
+	workflow := NewWorkflow("mixed-test").
+		AddJob(regularJob, Immediately()).
+		AddJob(statefulJob, After("regular"))
+
+	result, err := workflow.Run(ctx)
+
+	if err != nil {
+		t.Fatalf("Workflow execution failed: %v", err)
+	}
+
+	// 验证两种作业都能正常执行
+	if len(result.AllResults) != 2 {
+		t.Errorf("Expected 2 job results, got %d", len(result.AllResults))
+	}
+
+	// 验证状态只包含StatefulJob设置的数据
+	if data, exists := result.FinalState.GetString("stateful_data"); !exists || data != "from_stateful" {
+		t.Errorf("Expected stateful state data, got %s, exists: %v", data, exists)
+	}
+}
+
+// ============================================================================
 // 工具函数
 // ============================================================================
 
