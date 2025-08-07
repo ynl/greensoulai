@@ -1,0 +1,259 @@
+# crewAI-Go 开发规则
+
+## 项目概述
+
+使用 Go 语言重新实现 crewAI 框架，这是一个基于多智能体协作的 AI 任务处理系统。Go版本将提供更好的性能、并发处理能力和部署便利性。
+
+**参考文档**: `crewAI-Go 完整实施指引.md`
+
+## 架构原则
+
+### 1. 模块化设计
+- 每个功能模块独立设计，职责单一
+- 通过接口定义模块间的依赖关系
+- 支持依赖注入，便于测试和扩展
+
+### 2. 接口驱动开发
+- 优先定义接口，再实现具体类型
+- 使用 Go 的隐式接口实现，保持代码简洁
+- 接口应该小而专注，遵循 Interface Segregation Principle
+
+### 3. 错误处理
+- 使用 Go 的显式错误处理机制
+- 错误信息要详细且有意义
+- 支持错误包装和上下文传递
+- 使用 `errors` 或 `pkg/errors` 包
+
+### 4. 并发安全
+- 所有公共API必须是goroutine安全的
+- 使用 mutex、channel 或 atomic 包确保数据竞争安全
+- 正确使用 context.Context 进行取消和超时控制
+- 异步执行使用goroutine池管理，避免无限制创建
+
+### 5. 事件驱动架构
+- 所有组件必须集成事件系统
+- 关键生命周期事件：Started、Completed、Failed
+- 事件处理器必须是异步非阻塞的
+- 支持事件监听器的动态注册和注销
+
+### 6. 人工干预支持
+- Task支持人工输入标记和处理
+- Agent支持HumanInputHandler接口
+- 控制台输入支持超时控制
+- 支持自定义输入处理器
+
+### 7. 安全和审计
+- 每个组件必须有唯一指纹标识
+- 支持确定性UUID生成
+- 集成安全配置管理
+- 操作审计和日志记录
+
+## 代码规范
+
+### 1. 命名约定
+- 包名使用小写单词，简洁明了
+- 导出的函数、类型、变量使用 PascalCase
+- 非导出的使用 camelCase
+- 常量使用 ALL_CAPS_SNAKE_CASE 或 CamelCase
+
+### 2. 文件组织
+```
+pkg/
+├── agent/           # 智能体相关
+├── crew/            # 团队管理相关
+├── task/            # 任务处理相关
+├── flow/            # 工作流相关
+├── tools/           # 工具系统相关
+├── memory/          # 记忆系统相关
+├── llm/             # 语言模型相关
+├── knowledge/       # 知识管理相关
+└── common/          # 通用工具和类型
+```
+
+### 3. 代码风格
+- 使用 `gofmt` 格式化代码
+- 使用 `golint` 和 `go vet` 检查代码质量
+- 遵循 Effective Go 指导原则
+- 函数长度控制在 50 行以内
+
+## 核心接口设计
+
+### 1. Agent 接口
+```go
+type Agent interface {
+    Execute(ctx context.Context, task Task) (*TaskOutput, error)
+    GetRole() string
+    GetGoal() string
+    AddTool(tool Tool) error
+    SetMemory(memory Memory) error
+}
+```
+
+### 2. Crew 接口  
+```go
+type Crew interface {
+    AddAgent(agent Agent) error
+    AddTask(task Task) error
+    Kickoff(ctx context.Context, inputs map[string]interface{}) (*CrewOutput, error)
+    SetProcess(process Process) error
+}
+```
+
+### 3. Task 接口
+```go
+type Task interface {
+    Execute(ctx context.Context, agent Agent, context map[string]interface{}) (*TaskOutput, error)
+    GetDescription() string
+    GetExpectedOutput() string
+    Validate(output *TaskOutput) error
+}
+```
+
+## 测试要求
+
+### 1. 测试覆盖率
+- 所有核心功能模块测试覆盖率需达到 80% 以上
+- 关键路径和错误处理测试覆盖率需达到 95% 以上
+
+### 2. 测试类型
+- **单元测试**: 测试单个函数或方法
+- **集成测试**: 测试模块间的交互
+- **端到端测试**: 测试完整的工作流程
+- **性能测试**: 测试高并发和大数据量场景
+
+### 3. 测试工具
+- 使用标准库 `testing` 包
+- 使用 `github.com/stretchr/testify` 增强断言
+- 使用 `gomock` 生成接口 mock
+- 使用 `httptest` 进行 HTTP 测试
+
+### 4. 测试文件命名
+- 单元测试: `*_test.go`
+- 集成测试: `*_integration_test.go`  
+- 性能测试: `*_bench_test.go`
+
+## 依赖管理
+
+### 1. 核心依赖
+- HTTP 客户端: `github.com/go-resty/resty/v2`
+- 日志: `github.com/sirupsen/logrus`
+- 配置: `github.com/spf13/viper`
+- CLI: `github.com/spf13/cobra`
+- 验证: `github.com/go-playground/validator/v10`
+
+### 2. 可选依赖
+- 向量数据库: `github.com/chroma-core/chroma-go`
+- SQLite: `github.com/mattn/go-sqlite3`
+- Redis: `github.com/redis/go-redis/v9`
+
+### 3. 版本管理
+- 使用 `go.mod` 管理依赖
+- 锁定关键依赖版本避免破坏性更新
+- 定期更新依赖，修复安全漏洞
+
+## 性能要求
+
+### 1. 内存使用
+- 避免内存泄漏，正确使用 defer 语句
+- 使用对象池重用频繁创建的对象
+- 合理使用 slice 和 map 的预分配
+
+### 2. 并发性能
+- 使用 goroutine 池避免无限创建 goroutine
+- 合理使用 buffered channel
+- 避免阻塞操作，使用 select 和 timeout
+
+### 3. API 响应时间
+- LLM 调用超时设置合理默认值
+- 支持可配置的重试机制
+- 实现熔断和降级机制
+
+## 日志和监控
+
+### 1. 日志规范
+- 使用结构化日志 (JSON 格式)
+- 日志级别: DEBUG, INFO, WARN, ERROR, FATAL
+- 包含必要的上下文信息 (request_id, user_id 等)
+
+### 2. 指标收集
+- 记录关键操作的延迟和错误率
+- 监控内存和CPU使用情况
+- LLM API 调用次数和成本
+
+### 3. 错误追踪
+- 重要错误需要包含完整的调用栈
+- 支持分布式链路追踪
+- 错误分类和聚合展示
+
+## 文档要求
+
+### 1. API 文档
+- 所有公共接口必须有详细的注释
+- 包含参数说明、返回值说明、错误说明
+- 提供使用示例
+
+### 2. 用户文档  
+- 快速开始指南
+- 详细的功能说明
+- 配置参数说明
+- 常见问题解答
+
+### 3. 开发者文档
+- 架构设计文档
+- 模块设计文档  
+- 开发环境搭建
+- 贡献指南
+
+## 版本管理
+
+### 1. 语义化版本
+- 使用 Semantic Versioning (semver)
+- MAJOR.MINOR.PATCH 格式
+- 明确版本变更说明
+
+### 2. 发布流程
+- 代码审查通过后合并主分支
+- 自动化测试全部通过
+- 更新 CHANGELOG.md
+- 创建 Git tag 和 GitHub Release
+
+### 3. 向后兼容
+- 公共 API 变更需要保持向后兼容
+- 废弃功能需要提前通知
+- 提供迁移指南
+
+## 安全要求
+
+### 1. 输入验证
+- 所有外部输入必须验证
+- 防止注入攻击
+- 合理的输入长度限制
+
+### 2. 敏感信息
+- API 密钥等敏感信息不得硬编码
+- 使用环境变量或配置文件
+- 日志中不得记录敏感信息
+
+### 3. 网络安全
+- HTTPS 连接验证
+- 请求超时和限流
+- 用户认证和授权
+
+## 开发工作流
+
+### 1. 分支策略
+- `main`: 主分支，始终保持可发布状态
+- `develop`: 开发分支，集成最新功能
+- `feature/*`: 功能分支，开发新功能
+- `fix/*`: 修复分支，修复 bug
+
+### 2. 代码审查
+- 所有代码变更需要 Pull Request
+- 至少一位同事代码审查通过
+- 自动化测试全部通过
+
+### 3. 持续集成
+- 提交代码后自动运行测试
+- 代码质量检查 (golint, go vet)
+- 测试覆盖率检查
+- 安全漏洞扫描
