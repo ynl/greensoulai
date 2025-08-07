@@ -2,352 +2,224 @@
 
 [![Go Version](https://img.shields.io/badge/go-1.21+-blue.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Test Coverage](https://img.shields.io/badge/coverage-80%25-brightgreen.svg)](https://github.com/ynl/greensoulai)
-[![Microservices Ready](https://img.shields.io/badge/microservices-ready-green.svg)](docs/deployment.md)
-[![Enterprise Grade](https://img.shields.io/badge/enterprise-grade-blue.svg)](docs/enterprise.md)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/ynl/greensoulai/actions)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ynl/greensoulai)](https://goreportcard.com/report/github.com/ynl/greensoulai)
 
-> **塑造AI的未来，一个智能体一个生态**
+> **让AI智能体在Go生态中自然生长**
 
-**GreenSoul AI** 是下一代多智能体协作平台，专为Go生态和规模化微服务架构而生。我们的愿景是构建最完善的多智能体Go生态系统，让AI无缝集成到企业级微服务架构中，释放分布式智能的无限潜力。
+## 🌱 关于 GreenSoul AI
+
+GreenSoul AI 是一个用 Go 语言构建的多智能体协作框架，灵感来源于 crewAI 的设计理念。我们相信 AI 的未来不仅在于单个模型的能力，更在于多个智能体如何优雅地协同工作。
+
+这是一个正在成长的开源项目，我们的目标是为 Go 开发者提供一个简洁、高效、可扩展的多智能体开发框架。如果您也对多智能体系统感兴趣，欢迎加入我们的旅程。
 
 ## 🎯 我们的愿景
 
-**完善多智能体的Go生态** - 我们致力于建设Go语言最强大的多智能体协作平台
-**AI集成规模化微服务** - 将人工智能能力深度融入现代微服务架构
-**企业级生产就绪** - 提供可靠、安全、高性能的企业级AI解决方案
+我们梦想着构建一个充满活力的 Go 语言多智能体生态系统，让开发者能够：
 
-## 🌟 核心优势
+- **轻松创建智能体** - 用简洁的 Go 代码定义智能体的角色、目标和能力
+- **自然地协作** - 让多个智能体像团队一样自然地协同工作
+- **与现有系统融合** - 无缝集成到您的 Go 应用和微服务架构中
+- **持续学习成长** - 通过社区的力量不断完善和扩展框架能力
 
-### 🏗️ 微服务架构原生支持
-- **🔗 无缝集成**: 与现有Go微服务栈完美融合
-- **📡 分布式智能体**: 跨服务的智能体协作和通信
-- **⚡ 云原生部署**: Kubernetes、Docker、Service Mesh就绪
-- **🔄 事件驱动**: 基于事件的松耦合架构
+## ✨ 核心特性
 
-### 🚀 企业级性能
-- **⚡ 极致性能**: 比Python版本提升2-3倍执行效率
-- **💪 高并发**: 单节点支持1000+并发智能体
-- **🔋 资源优化**: 低内存占用，高效资源利用
-- **📦 零依赖部署**: 单二进制文件，生产环境开箱即用
+### 当前已实现
+- 🤖 **智能体系统** - 基础的 Agent 接口和实现框架
+- 👥 **团队协作** - Crew 管理和任务分配机制
+- 📋 **任务执行** - 灵活的任务定义和执行引擎
+- 🔄 **工作流编排** - 并行作业调度和状态管理
+- 🎯 **事件驱动** - 完整的事件总线和监听器系统
+- 🔧 **LLM 集成** - 支持 OpenAI 和可扩展的 Provider 机制
+- 📝 **结构化日志** - 统一的日志和错误处理
 
-### 🛡️ 生产就绪
-- **🔒 企业安全**: 内置安全指纹、访问控制、审计日志
-- **📊 可观测性**: 完整的指标、链路追踪、健康检查
-- **🛠️ 运维友好**: 优雅关闭、热重载、配置管理
-- **⚠️ 容错设计**: 断路器、重试机制、降级策略
-
-### 🌐 开放生态
-- **🔌 工具生态**: 丰富的内置工具和第三方工具支持
-- **🤖 模型无关**: 支持OpenAI、Claude、本地模型等
-- **📚 知识管理**: 向量数据库、文档检索、知识图谱
-- **🎯 类型安全**: 强类型系统确保运行时可靠性
-
-## 🏗️ 架构设计
-
-### 微服务友好的分层架构
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                   🌐 API Gateway                        │
-├─────────────────────────────────────────────────────────┤
-│  🤖 智能体服务    │  📊 工作流服务   │  💾 知识服务      │
-├─────────────────────────────────────────────────────────┤
-│  📨 事件总线      │  🔒 安全服务     │  📈 监控服务      │
-├─────────────────────────────────────────────────────────┤
-│            🗃️ 持久化层 (数据库/缓存/消息队列)              │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 项目结构
-
-```
-greensoulai/
-├── cmd/                     # 🚀 微服务入口
-│   └── greensoulai/        #    主服务程序
-├── internal/               # 🏢 核心业务逻辑
-│   ├── agent/             #    智能体协作引擎
-│   ├── crew/              #    团队编排服务
-│   ├── task/              #    任务执行引擎
-│   ├── flow/              #    工作流编排器
-│   ├── tools/             #    工具集成框架
-│   ├── memory/            #    分布式记忆系统
-│   ├── llm/               #    LLM服务适配器
-│   ├── knowledge/         #    知识管理服务
-│   ├── evaluation/        #    性能评估系统
-│   └── training/          #    持续学习引擎
-├── pkg/                    # 📦 共享基础设施
-│   ├── events/            #    事件驱动架构
-│   ├── async/             #    异步执行框架
-│   ├── security/          #    企业安全框架
-│   ├── logger/            #    结构化日志
-│   ├── errors/            #    错误处理体系
-│   └── flow/              #    分布式工作流
-├── examples/              # 📚 实战示例
-│   ├── basic/            #    入门示例
-│   ├── llm/              #    模型集成
-│   ├── workflow/         #    工作流示例
-│   ├── crew/             #    团队协作
-│   └── training/         #    持续学习
-├── docs/                  # 📖 完整文档
-│   ├── WORKFLOW_ARCHITECTURE.md
-│   ├── PROJECT_STRUCTURE.md
-│   └── FINAL_FLOW_DESIGN.md
-└── deployments/           # ☁️ 云原生部署
-    ├── docker/           #    容器化配置
-    ├── k8s/              #    Kubernetes清单
-    └── helm/             #    Helm图表
-```
+### 正在开发中
+- 🧠 **记忆系统** - 短期、长期和实体记忆管理
+- 🛠️ **工具生态** - 丰富的内置工具和自定义工具支持
+- 📚 **知识管理** - 文档检索和知识库集成
+- 🎓 **持续学习** - 智能体训练和优化机制
+- 🌐 **分布式支持** - 跨服务的智能体协作
 
 ## 🚀 快速开始
 
-### 📦 安装部署
+### 安装
 
-#### Go模块安装
 ```bash
-go install github.com/ynl/greensoulai/cmd/greensoulai@latest
+go get github.com/ynl/greensoulai
 ```
 
-#### Docker部署 (生产推荐)
-```bash
-docker run -d --name greensoulai \
-  -p 8080:8080 \
-  -e OPENAI_API_KEY=${OPENAI_API_KEY} \
-  greensoulai/greensoulai:latest
-```
+### 第一个智能体
 
-#### Kubernetes部署
-```bash
-kubectl apply -f deployments/k8s/
-```
+创建一个简单的研究助手：
 
-### 🎯 场景示例
-
-#### 1. 微服务内集成 - 智能客服系统
 ```go
 package main
 
 import (
     "context"
-    "net/http"
+    "fmt"
+    "log"
     
-    "github.com/gin-gonic/gin"
     "github.com/ynl/greensoulai/internal/agent"
-    "github.com/ynl/greensoulai/internal/crew"
+    "github.com/ynl/greensoulai/internal/llm"
     "github.com/ynl/greensoulai/pkg/events"
     "github.com/ynl/greensoulai/pkg/logger"
 )
 
 func main() {
-    // 初始化基础设施
-    logger := logger.NewStructuredLogger()
+    // 初始化基础组件
+    logger := logger.NewConsoleLogger()
     eventBus := events.NewEventBus(logger)
     
-    // 创建专业智能体团队
-    supportAgent := agent.NewBaseAgent(
-        "客服专家", 
-        "提供专业客户支持",
-        "你是经验丰富的客服专家，善于解决各种客户问题", 
-        openaiLLM, eventBus, logger)
+    // 配置 LLM（需要设置 OPENAI_API_KEY 环境变量）
+    llmConfig := &llm.Config{
+        Provider: "openai",
+        Model:    "gpt-3.5-turbo",
+        APIKey:   os.Getenv("OPENAI_API_KEY"),
+    }
     
-    technicalAgent := agent.NewBaseAgent(
-        "技术专家",
-        "处理技术相关问题", 
-        "你是资深技术专家，精通产品技术细节",
-        openaiLLM, eventBus, logger)
+    llmProvider, err := llm.CreateLLM(llmConfig)
+    if err != nil {
+        log.Fatal(err)
+    }
     
-    // 构建协作团队
-    customerServiceCrew := crew.NewBaseCrew(
-        "智能客服团队", 
-        eventBus, logger)
-    customerServiceCrew.AddAgent(supportAgent)
-    customerServiceCrew.AddAgent(technicalAgent)
+    // 创建研究助手智能体
+    researcher := agent.NewBaseAgent(
+        agent.AgentConfig{
+            Role:      "研究助手",
+            Goal:      "帮助用户研究和分析信息",
+            Backstory: "你是一位经验丰富的研究员，善于收集和分析各种信息",
+            LLM:       llmProvider,
+            EventBus:  eventBus,
+            Logger:    logger,
+        },
+    )
     
-    // 集成到Web服务
-    r := gin.Default()
-    r.POST("/api/support", func(c *gin.Context) {
-        var req CustomerQuery
-        c.ShouldBindJSON(&req)
-        
-        // 智能体协作处理请求
-        result, err := customerServiceCrew.Process(c.Request.Context(), req)
-        if err != nil {
-            c.JSON(500, gin.H{"error": err.Error()})
-            return
-        }
-        
-        c.JSON(200, result)
-    })
+    // 创建并执行任务
+    task := agent.NewTask(
+        "研究 Go 语言的并发模型",
+        "提供 Go 语言并发模型的详细说明，包括 goroutine 和 channel 的工作原理",
+    )
     
-    r.Run(":8080")
+    ctx := context.Background()
+    output, err := researcher.Execute(ctx, task)
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    fmt.Printf("研究结果:\n%s\n", output.Raw)
 }
 ```
 
-#### 2. 工作流编排 - 自动化报告生成
+### 团队协作示例
+
+多个智能体协同工作：
+
 ```go
 package main
 
 import (
     "context"
+    "log"
     
-    "github.com/ynl/greensoulai/pkg/flow"
     "github.com/ynl/greensoulai/internal/agent"
+    "github.com/ynl/greensoulai/internal/crew"
 )
 
 func main() {
-    // 定义分布式工作流
-    workflow := flow.NewWorkflow("market-analysis-pipeline")
+    // 创建一个研究团队
+    researchCrew := crew.NewBaseCrew(
+        &crew.CrewConfig{
+            Name:    "产品研究团队",
+            Process: crew.ProcessSequential,
+        },
+        eventBus,
+        logger,
+    )
     
-    // 数据收集阶段
-    workflow.AddStep("data_collection", func(ctx context.Context, input interface{}) (interface{}, error) {
-        dataCollector := agent.NewAgent("Data Analyst", "收集市场数据", "...")
-        return dataCollector.Execute(ctx, task.NewTask("收集最新市场数据"))
-    })
+    // 添加不同角色的智能体
+    researchCrew.AddAgent(marketAnalyst)   // 市场分析师
+    researchCrew.AddAgent(techExpert)      // 技术专家
+    researchCrew.AddAgent(contentWriter)   // 内容撰写者
     
-    // 智能分析阶段  
-    workflow.AddStep("analysis", func(ctx context.Context, input interface{}) (interface{}, error) {
-        analysisTeam := crew.NewCrew("分析团队")
-        return analysisTeam.Process(ctx, input)
-    })
+    // 定义任务链
+    researchCrew.AddTask(marketResearchTask)
+    researchCrew.AddTask(technicalAnalysisTask)
+    researchCrew.AddTask(reportWritingTask)
     
-    // 报告生成阶段
-    workflow.AddStep("report_generation", func(ctx context.Context, input interface{}) (interface{}, error) {
-        reporterAgent := agent.NewAgent("Report Writer", "生成专业报告", "...")
-        return reporterAgent.Execute(ctx, task.NewTask("生成市场分析报告"))
-    })
-    
-    // 执行工作流
-    result, err := workflow.Execute(context.Background(), MarketQuery{
-        Industry: "AI/ML",
-        Region:   "Global",
-        Period:   "Q4 2024",
+    // 启动团队工作
+    ctx := context.Background()
+    result, err := researchCrew.Kickoff(ctx, map[string]interface{}{
+        "product": "AI 助手应用",
+        "target":  "开发者群体",
     })
     
     if err != nil {
         log.Fatal(err)
     }
     
-    fmt.Printf("报告生成完成: %+v\n", result)
+    log.Printf("团队工作完成: %s", result.FinalOutput)
 }
 ```
 
-#### 3. 事件驱动架构 - 实时智能响应
-```go
-package main
+## 🏗️ 项目结构
 
-import (
-    "context"
-    
-    "github.com/ynl/greensoulai/pkg/events"
-    "github.com/ynl/greensoulai/internal/agent"
-)
-
-func main() {
-    eventBus := events.NewEventBus(logger)
-    
-    // 创建响应智能体
-    alertAgent := agent.NewAgent("Alert Handler", "处理系统告警", "...")
-    anomalyAgent := agent.NewAgent("Anomaly Detector", "异常检测分析", "...")
-    
-    // 注册事件监听器
-    eventBus.Subscribe("system.alert", func(ctx context.Context, event events.Event) error {
-        // 智能体自动响应系统告警
-        response, err := alertAgent.Execute(ctx, task.NewTask(
-            fmt.Sprintf("分析告警: %s", event.GetPayload()["message"])))
-        
-        // 自动采取修复措施
-        if response.Confidence > 0.8 {
-            return executeRemediation(response.RecommendedActions)
-        }
-        
-        return nil
-    })
-    
-    // 监听业务事件
-    eventBus.Subscribe("business.anomaly", func(ctx context.Context, event events.Event) error {
-        return anomalyAgent.Execute(ctx, task.NewTask("异常行为分析"))
-    })
-    
-    // 启动事件监听
-    eventBus.Start(context.Background())
-}
+```
+greensoulai/
+├── cmd/                    # 命令行工具
+├── internal/              # 核心实现
+│   ├── agent/            # 智能体系统
+│   ├── crew/             # 团队协作
+│   ├── llm/              # 语言模型集成
+│   ├── memory/           # 记忆管理
+│   └── knowledge/        # 知识管理
+├── pkg/                   # 公共库
+│   ├── events/           # 事件系统
+│   ├── logger/           # 日志系统
+│   └── flow/             # 工作流引擎
+├── examples/              # 示例代码
+└── docs/                  # 文档
 ```
 
-## 🏢 企业级应用场景
+## 🛠️ 开发路线图
 
-### 💼 行业解决方案
+我们正在积极开发以下功能：
 
-| 行业 | 应用场景 | 核心价值 |
-|------|----------|----------|
-| **金融服务** | 智能风控、投资分析、客户服务 | 提升决策精度，降低合规风险 |
-| **电商零售** | 个性化推荐、库存优化、用户分析 | 优化用户体验，提升转化率 |
-| **制造业** | 预测性维护、质量控制、供应链优化 | 降低运营成本，提升效率 |
-| **医疗健康** | 辅助诊断、药物发现、患者管理 | 提升医疗质量，加速研发 |
-| **教育科技** | 个性化学习、智能辅导、内容生成 | 因材施教，提升学习效果 |
+### 近期目标（v0.1.0）
+- [x] 基础智能体系统
+- [x] 事件驱动架构
+- [x] OpenAI 集成
+- [ ] 完整的任务执行流程
+- [ ] 基础工具系统
+- [ ] 简单的记忆管理
 
-### 🔗 技术栈集成
+### 中期目标（v0.2.0）
+- [ ] 更多 LLM Provider 支持
+- [ ] 高级工具集成
+- [ ] 知识库管理
+- [ ] Web UI 界面
+- [ ] 性能优化
 
-```mermaid
-graph TB
-    A[GreenSoul AI] --> B[Kubernetes]
-    A --> C[Docker]
-    A --> D[Istio Service Mesh]
-    A --> E[Prometheus + Grafana]
-    A --> F[ELK Stack]
-    A --> G[Redis Cluster]
-    A --> H[PostgreSQL]
-    A --> I[Apache Kafka]
-    A --> J[HashiCorp Vault]
-```
+### 长期愿景
+- [ ] 分布式智能体协作
+- [ ] 智能体市场
+- [ ] 可视化工作流设计器
+- [ ] 与主流框架集成
 
-## 📚 完整文档
+## 🤝 参与贡献
 
-### 📖 开发指南
-- [🚀 快速开始](docs/quickstart.md) - 5分钟上手指南
-- [🏗️ 架构详解](docs/WORKFLOW_ARCHITECTURE.md) - 深入理解系统架构
-- [📋 项目结构](docs/PROJECT_STRUCTURE.md) - 代码组织和模块说明
-- [🔄 工作流设计](docs/FINAL_FLOW_DESIGN.md) - 工作流引擎详解
+GreenSoul AI 是一个开源项目，我们欢迎所有形式的贡献！
 
-### 🛠️ 部署运维
-- [☁️ 云原生部署](docs/deployment/cloud-native.md) - Kubernetes + Helm
-- [🐳 容器化指南](docs/deployment/docker.md) - Docker最佳实践
-- [📊 监控告警](docs/deployment/monitoring.md) - 生产环境监控
-- [🔒 安全加固](docs/deployment/security.md) - 企业级安全配置
+### 如何贡献
 
-### 💡 最佳实践
-- [🎯 设计模式](docs/patterns/README.md) - 多智能体设计模式
-- [⚡ 性能优化](docs/performance/README.md) - 高并发性能调优
-- [🔧 故障排查](docs/troubleshooting/README.md) - 常见问题解决
-- [📈 扩展指南](docs/scaling/README.md) - 水平扩展策略
+1. **报告问题** - 发现 bug 或有建议？[提交 Issue](https://github.com/ynl/greensoulai/issues)
+2. **贡献代码** - Fork 项目，创建分支，提交 PR
+3. **完善文档** - 帮助改进文档和示例
+4. **分享经验** - 在项目中使用？分享您的经验和最佳实践
+5. **传播项目** - Star 项目，向朋友推荐
 
-### 🚀 实战案例
-- [🛒 电商推荐系统](examples/ecommerce/) - 完整的推荐引擎实现
-- [📈 金融风控平台](examples/fintech/) - 实时风险评估系统
-- [🏥 智能客服机器人](examples/customer-service/) - 多轮对话处理
-- [📊 数据分析管道](examples/data-pipeline/) - 自动化报告生成
+### 开发环境设置
 
-## 🌐 GreenSoul AI 生态系统
-
-### 🔧 官方工具集
-- **🎛️ GreenSoul Console** - 可视化管理控制台
-- **📊 GreenSoul Analytics** - 智能体性能分析平台  
-- **🔌 GreenSoul Gateway** - API网关和负载均衡
-- **📦 GreenSoul Registry** - 智能体和工具注册中心
-
-### 🤝 社区插件
-- **🔍 Search Tools** - 搜索引擎和爬虫工具集
-- **📄 Document Processors** - 文档解析和处理工具
-- **💾 Database Connectors** - 多数据库连接器
-- **🌍 External APIs** - 第三方API集成工具
-
-### 🎓 学习资源
-- **📚 官方教程** - 从入门到精通的完整学习路径
-- **🎥 视频课程** - 实战项目和案例分析
-- **👥 社区论坛** - 开发者交流和问题讨论
-- **📝 技术博客** - 最新技术趋势和实践分享
-
-## 🧪 开发环境
-
-### ⚙️ 本地开发
 ```bash
 # 克隆项目
 git clone https://github.com/ynl/greensoulai.git
@@ -361,71 +233,41 @@ make test
 
 # 构建项目
 make build
-
-# 启动开发服务
-make dev
 ```
 
-### 🐳 容器化开发
-```bash
-# 构建开发镜像
-make docker-dev
+### 行为准则
 
-# 启动开发环境
-docker-compose -f docker-compose.dev.yml up
-```
+我们致力于提供友好、包容的社区环境。请阅读并遵守我们的[行为准则](CODE_OF_CONDUCT.md)。
 
-### 🔍 代码质量检查
-```bash
-# 静态分析
-make lint
+## 📚 文档和资源
 
-# 安全扫描  
-make security-scan
+- [入门指南](docs/getting-started.md) - 详细的入门教程
+- [API 文档](docs/api-reference.md) - 完整的 API 参考
+- [架构设计](docs/WORKFLOW_ARCHITECTURE.md) - 系统架构说明
+- [示例代码](examples/) - 各种使用场景的示例
 
-# 性能基准测试
-make benchmark
+## 🙏 致谢
 
-# 集成测试
-make integration-test
-```
+- 感谢 [crewAI](https://github.com/joaomdmoura/crewAI) 项目的灵感和设计理念
+- 感谢所有贡献者的努力和支持
+- 感谢 Go 社区提供的优秀工具和库
 
-## 💖 社区与生态
+## 📄 许可证
 
-### 🌟 核心理念
-**开放协作** - 我们相信开源的力量能推动AI技术的民主化
-**企业级品质** - 每一行代码都经过严格测试，确保生产环境可靠性
-**持续创新** - 紧跟AI技术前沿，不断优化和完善功能
+GreenSoul AI 采用 MIT 许可证，详见 [LICENSE](LICENSE) 文件。
 
-### 🚀 发展路线图
-- **Q1 2025**: 完成核心多智能体框架和工作流引擎
-- **Q2 2025**: 发布企业级监控和管理工具
-- **Q3 2025**: 支持更多LLM提供商和本地模型
-- **Q4 2025**: 构建完整的可视化开发平台
+## 💬 联系我们
 
-### 🤝 参与贡献
-我们热烈欢迎各种形式的贡献：
-- **🐛 报告Bug** - 发现问题请提交Issue
-- **💡 功能建议** - 好想法请在Discussions中分享
-- **📝 代码贡献** - 欢迎提交Pull Request
-- **📚 文档完善** - 帮助改进文档和示例
-- **🎯 测试反馈** - 在你的项目中使用并分享经验
-
-### 📞 联系我们
-- **💬 技术支持**: [GitHub Issues](https://github.com/ynl/greensoulai/issues)
-- **💭 产品讨论**: [GitHub Discussions](https://github.com/ynl/greensoulai/discussions) 
-- **📧 商务合作**: business@greensoulai.com
-- **🔗 官方网站**: [greensoulai.com](https://greensoulai.com)
-- **📱 官方微信**: GreenSoulAI-Official
+- **GitHub Issues**: [问题和建议](https://github.com/ynl/greensoulai/issues)
+- **Discussions**: [社区讨论](https://github.com/ynl/greensoulai/discussions)
+- **Email**: greensoulai@example.com
 
 ---
 
 <div align="center">
 
-**🌿 GreenSoul AI - 让每一个智能体都绽放生命力**
+**🌿 GreenSoul AI - 让智能体在 Go 生态中自然生长**
 
-[![Star History Chart](https://api.star-history.com/svg?repos=ynl/greensoulai&type=Date)](https://star-history.com/#ynl/greensoulai&Date)
-
-*Built with ❤️ by the GreenSoul AI Team*
+如果这个项目对您有帮助，请给我们一个 ⭐️ Star！
 
 </div>
