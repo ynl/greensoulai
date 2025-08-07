@@ -50,12 +50,13 @@ func TestEventBus_MultipleHandlers(t *testing.T) {
 	logger := logger.NewTestLogger()
 	eventBus := NewEventBus(logger)
 
-	receivedCount := 0
+	// 使用channel来避免竞态条件
+	received := make(chan bool, 3)
 
 	// 注册多个处理器
 	for i := 0; i < 3; i++ {
 		err := eventBus.Subscribe("multi_event", func(ctx context.Context, event Event) error {
-			receivedCount++
+			received <- true
 			return nil
 		})
 		if err != nil {
@@ -74,7 +75,17 @@ func TestEventBus_MultipleHandlers(t *testing.T) {
 	}
 
 	// 等待所有处理器执行
-	time.Sleep(100 * time.Millisecond)
+	receivedCount := 0
+	timeout := time.After(1 * time.Second)
+
+	for receivedCount < 3 {
+		select {
+		case <-received:
+			receivedCount++
+		case <-timeout:
+			t.Fatalf("expected 3 handlers to be called, got %d (timeout)", receivedCount)
+		}
+	}
 
 	if receivedCount != 3 {
 		t.Errorf("expected 3 handlers to be called, got %d", receivedCount)

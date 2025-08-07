@@ -220,6 +220,82 @@ func (m *MockTask) SetContext(context map[string]interface{}) {
 	// Mock实现，不做实际存储
 }
 
+func (m *MockTask) SetDescription(description string) {
+	m.description = description
+}
+
+func (m *MockTask) GetName() string {
+	return "mock-task"
+}
+
+func (m *MockTask) SetName(name string) {
+	// Mock implementation
+}
+
+func (m *MockTask) GetOutputFile() string {
+	return ""
+}
+
+func (m *MockTask) SetOutputFile(filename string) error {
+	return nil
+}
+
+func (m *MockTask) GetCreateDirectory() bool {
+	return false
+}
+
+func (m *MockTask) SetCreateDirectory(create bool) {
+	// Mock implementation
+}
+
+func (m *MockTask) GetCallback() func(context.Context, *agent.TaskOutput) error {
+	return nil
+}
+
+func (m *MockTask) SetCallback(callback func(context.Context, *agent.TaskOutput) error) {
+	// Mock implementation
+}
+
+func (m *MockTask) GetContextTasks() []agent.Task {
+	return nil
+}
+
+func (m *MockTask) SetContextTasks(tasks []agent.Task) {
+	// Mock implementation
+}
+
+func (m *MockTask) GetRetryCount() int {
+	return 0
+}
+
+func (m *MockTask) GetMaxRetries() int {
+	return 3
+}
+
+func (m *MockTask) SetMaxRetries(maxRetries int) {
+	// Mock implementation
+}
+
+func (m *MockTask) HasGuardrail() bool {
+	return false
+}
+
+func (m *MockTask) SetGuardrail(guardrail agent.TaskGuardrail) {
+	// Mock implementation
+}
+
+func (m *MockTask) GetGuardrail() agent.TaskGuardrail {
+	return nil
+}
+
+func (m *MockTask) IsMarkdownOutput() bool {
+	return false
+}
+
+func (m *MockTask) SetMarkdownOutput(markdown bool) {
+	// Mock implementation
+}
+
 func TestNewBaseCrew(t *testing.T) {
 	logger := logger.NewTestLogger()
 	eventBus := events.NewEventBus(logger)
