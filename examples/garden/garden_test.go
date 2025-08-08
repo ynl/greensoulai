@@ -12,7 +12,7 @@ func TestRunGarden_MinimalFlow(t *testing.T) {
 	if os.Getenv("OPENROUTER_API_KEY") == "" {
 		t.Skip("跳过集成测试：需要OPENROUTER_API_KEY环境变量")
 	}
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -25,9 +25,9 @@ func TestRunGarden_MinimalFlow(t *testing.T) {
 		t.Fatalf("RunGarden returned nil output")
 	}
 
-    // 多轮顺序群聊：5（R1）+5（R2）+5（R3）+2 = 17
-    if len(out.TasksOutput) != 17 {
-        t.Fatalf("expected 17 task outputs, got %d", len(out.TasksOutput))
+	// 多轮顺序群聊：5（R1）+5（R2）+5（R3）+2 = 17
+	if len(out.TasksOutput) != 17 {
+		t.Fatalf("expected 17 task outputs, got %d", len(out.TasksOutput))
 	}
 
 	// 验证顺序流程合并Raw内容
