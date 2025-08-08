@@ -210,10 +210,9 @@ go run ./examples/garden/cmd
 ### 🎥 演示视频
 您可以直接在 GitHub 上播放或下载：
 
-<video src="docs/greensoulgarden.mp4" controls style="max-width:100%; height:auto;">
-  您的环境不支持内嵌播放，请点击此处下载：
-  <a href="docs/greensoulgarden.mp4">greensoulgarden.mp4</a>
-</video>
+![GreenSoul Garden Demo](docs/greensoulgarden.gif)
+
+> 若需高清版，见 `docs/greensoulgarden.mp4` 或点击 "View raw" 下载。
 
 ### 产出与体验
 - 终端滚动输出：
