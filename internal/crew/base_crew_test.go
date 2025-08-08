@@ -156,6 +156,7 @@ type MockTask struct {
 	description    string
 	expectedOutput string
 	humanInput     string
+	tools          []agent.Tool
 }
 
 func (m *MockTask) GetID() string {
@@ -191,7 +192,25 @@ func (m *MockTask) GetOutputFormat() agent.OutputFormat {
 }
 
 func (m *MockTask) GetTools() []agent.Tool {
-	return []agent.Tool{}
+	return m.tools
+}
+
+func (m *MockTask) SetDescription(description string) {
+	m.description = description
+}
+
+func (m *MockTask) AddTool(tool agent.Tool) error {
+	m.tools = append(m.tools, tool)
+	return nil
+}
+
+func (m *MockTask) SetTools(tools []agent.Tool) error {
+	m.tools = tools
+	return nil
+}
+
+func (m *MockTask) HasTools() bool {
+	return len(m.tools) > 0
 }
 
 func (m *MockTask) Validate() error {

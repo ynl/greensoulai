@@ -147,7 +147,7 @@ func TestBaseAgent_Execute_Simple(t *testing.T) {
 	// 使用辅助函数创建标准Mock响应
 	mockResponse := createStandardMockResponse("This is a test response")
 	mockLLM := NewMockLLM(mockResponse, false)
-	
+
 	// 使用辅助函数创建测试Agent
 	agent, err := createTestAgent(mockLLM)
 	if err != nil {

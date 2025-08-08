@@ -1,6 +1,3 @@
-//go:build test
-// +build test
-
 package agent
 
 import (
@@ -452,7 +449,7 @@ func createStandardMockResponse(content string) *llm.Response {
 	}
 }
 
-// createErrorMockResponse 创建错误Mock响应  
+// createErrorMockResponse 创建错误Mock响应
 func createErrorMockResponse(content string) *llm.Response {
 	return &llm.Response{
 		Content:      content,
