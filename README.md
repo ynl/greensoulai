@@ -179,6 +179,62 @@ func main() {
 
 提示：也可直接运行并行工作流示例 `examples/workflow/simple_usage.go`，快速体验 Job/Trigger 的并行编排与性能指标。
 
+## 🌸 Garden 场景（用户故事与产品应用）
+
+### 用户故事（多轮群聊协作）
+- 你希望在 10x10m 的花园里进行生态友好的种植布局，让不同花卉“自行协商”。
+- 我们将 5 种花建模为 5 个智能体：`Rose/玫瑰`、`Sunflower/向日葵`、`Lavender/薰衣草`、`Lily/百合`、`Tulip/郁金香`。
+- 他们按回合（多轮顺序任务）依次发言：
+  1) 自述需求（光照/排水/土壤/季节性）
+  2) 基于前文“聚合上下文”回应/补充/妥协
+  3) 汇总偏好与约束
+  4) 综合协商 + 最终布局
+- 输出以“对话形式”实时打印，最终给出结构化的布局建议思路。
+
+### 运行（仅 OpenRouter）
+- 环境变量：
+  - `OPENROUTER_API_KEY`: OpenRouter 密钥（必需）
+  - `GARDEN_MODEL`（可选，默认 `moonshotai/kimi-k2:free`）
+  - `GARDEN_VERBOSE=0`：仅打印对话，不暴露实现日志
+  - `GARDEN_DELAY_MS=300`：对话停顿（毫秒）
+  - `GARDEN_DELAY_JITTER_PCT=30`：延迟抖动百分比（可模拟随机性）
+  - `GARDEN_SHUFFLE_ROUNDS=1`：每回合发言随机顺序
+
+```bash
+# 示例（只保留对话，带轻微随机停顿与回合内乱序）
+OPENROUTER_API_KEY=sk-*** \
+GARDEN_VERBOSE=0 GARDEN_DELAY_MS=300 GARDEN_DELAY_JITTER_PCT=30 GARDEN_SHUFFLE_ROUNDS=1 \
+go run ./examples/garden/cmd
+```
+
+### 🎥 演示视频
+您可以直接在 GitHub 上播放或下载：
+
+<video src="docs/greensoulgarden.mov" controls style="max-width:100%; height:auto;">
+  您的环境不支持内嵌播放，请点击此处下载：
+  <a href="docs/greensoulgarden.mov">greensoulgarden.mov</a>
+</video>
+
+### 产出与体验
+- 终端滚动输出：
+  - `💬 Rose：...`、`💬 Sunflower：...` 等逐条“发言”
+  - 对话节奏可被 `GARDEN_DELAY_*` 调整，默认隐藏内部实现日志
+- 最终在控制台底部打印“运行成功与聚合文本摘要”。
+
+### 产品应用场景
+- **园林规划/景观设计**：多角色（光照/排水/季节/授粉）偏好冲突自动化博弈与妥协生成初稿。
+- **智慧农业/设施园艺**：按作物/花卉“角色化”建模，自动给出分区/轮作/邻里组合建议。
+- **教育演示/工作坊**：将“多智能体协作”以具象、可视化的对话方式呈现，便于非技术人员理解。
+- **A/B 场景对比**：通过修改 `inputs` 与回合设置，快速形成不同布局方案以供评审。
+
+### 技术映射
+- Crew（花园）：`examples/garden/garden.go` 内部 `Crew.ProcessSequential` 按回合推进。
+- Agents（花朵）：各自 `role/goal/backstory`，使用 OpenRouter LLM 生成“发言”。
+- Tasks（多轮顺序）：前文输出自动聚合进 `aggregated_context`，后续发言基于“上下文”回应。
+- 事件/输出：通过 `TaskCallback` 以“💬 发言”逐条打印，避免暴露底层实现细节。
+
+> 小贴士：若需要主持人/仲裁者，可将流程切换为分层模式（Hierarchical），引入“园丁”作为 Manager 协调与指派。
+
 ## 🏗️ 项目结构
 
 ```
