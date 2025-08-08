@@ -69,6 +69,9 @@ type Task interface {
 	GetHumanInput() string
 	GetOutputFormat() OutputFormat
 	GetTools() []Tool
+	AddTool(tool Tool) error
+	SetTools(tools []Tool) error
+	HasTools() bool
 	Validate() error
 
 	// 支持任务预分配Agent，对标Python版本的task.agent

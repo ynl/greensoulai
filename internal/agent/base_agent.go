@@ -292,7 +292,17 @@ func (a *BaseAgent) ExecuteWithTimeout(ctx context.Context, task Task, timeout t
 
 // executeCore 执行任务的核心逻辑
 func (a *BaseAgent) executeCore(ctx context.Context, task Task) (*TaskOutput, error) {
-	// 检查是否启用推理功能，对标Python的reasoning
+	// 1. 工具系统集成 - 选择和准备工具
+	toolCtx := NewToolExecutionContext(a, task)
+
+	a.logger.Info("Preparing tools for task execution",
+		logger.Field{Key: "task_id", Value: task.GetID()},
+		logger.Field{Key: "has_tools", Value: toolCtx.HasTools()},
+		logger.Field{Key: "tool_count", Value: len(toolCtx.Tools)},
+		logger.Field{Key: "tool_names", Value: toolCtx.GetToolNames()},
+	)
+
+	// 2. 检查是否启用推理功能，对标Python的reasoning
 	if a.executionConfig.EnableReasoning && a.reasoningHandler != nil {
 		if err := a.handleReasoning(ctx, task); err != nil {
 			a.logger.Error("Reasoning process failed",
@@ -303,23 +313,25 @@ func (a *BaseAgent) executeCore(ctx context.Context, task Task) (*TaskOutput, er
 		}
 	}
 
-	// 构建任务提示
-	prompt, err := a.buildTaskPrompt(ctx, task)
+	// 3. 构建任务提示（包含工具信息）
+	prompt, err := a.buildTaskPromptWithTools(ctx, task, toolCtx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build task prompt: %w", err)
 	}
 
-	// 准备LLM消息
+	// 4. 准备LLM消息
 	messages := a.buildMessages(prompt)
 
-	// 调用LLM
-	callOptions := a.buildLLMCallOptions()
+	// 5. 准备LLM调用选项（包含工具模式）
+	callOptions := a.buildLLMCallOptionsWithTools(toolCtx)
+
+	// 6. 调用LLM
 	response, err := a.llmProvider.Call(ctx, messages, callOptions)
 	if err != nil {
 		return nil, fmt.Errorf("LLM call failed: %w", err)
 	}
 
-	// 处理响应并构建输出
+	// 7. 处理响应并构建输出
 	output := a.buildTaskOutput(task, response)
 
 	// 执行回调
@@ -333,8 +345,14 @@ func (a *BaseAgent) executeCore(ctx context.Context, task Task) (*TaskOutput, er
 	return output, nil
 }
 
-// buildTaskPrompt 构建任务提示
+// buildTaskPrompt 构建任务提示（向后兼容）
 func (a *BaseAgent) buildTaskPrompt(ctx context.Context, task Task) (string, error) {
+	toolCtx := NewToolExecutionContext(a, task)
+	return a.buildTaskPromptWithTools(ctx, task, toolCtx)
+}
+
+// buildTaskPromptWithTools 构建包含工具信息的任务提示
+func (a *BaseAgent) buildTaskPromptWithTools(ctx context.Context, task Task, toolCtx *ToolExecutionContext) (string, error) {
 	prompt := task.GetDescription()
 
 	// 添加期望输出
@@ -347,10 +365,15 @@ func (a *BaseAgent) buildTaskPrompt(ctx context.Context, task Task) (string, err
 		prompt += fmt.Sprintf("\n\nHuman Input: %s", task.GetHumanInput())
 	}
 
-	// 添加可用工具信息
-	if len(a.tools) > 0 {
-		toolsDesc := a.buildToolsDescription()
+	// 添加工具信息（使用工具执行上下文）
+	if toolCtx.HasTools() {
+		toolsDesc := toolCtx.GetToolsDescription()
 		prompt += fmt.Sprintf("\n\nAvailable Tools:\n%s", toolsDesc)
+
+		// 添加工具使用指导
+		prompt += "\n\nTo use a tool, respond with a JSON object in the following format:"
+		prompt += "\n{\"tool_name\": \"<tool_name>\", \"arguments\": {\"arg1\": \"value1\", \"arg2\": \"value2\"}}"
+		prompt += "\nIf no tool is needed, provide your response directly."
 	}
 
 	// 查询记忆系统
@@ -436,6 +459,12 @@ func (a *BaseAgent) buildToolsDescription() string {
 
 // buildLLMCallOptions 构建LLM调用选项
 func (a *BaseAgent) buildLLMCallOptions() *llm.CallOptions {
+	toolCtx := NewToolExecutionContext(a, nil) // 为了向后兼容，传入nil task
+	return a.buildLLMCallOptionsWithTools(toolCtx)
+}
+
+// buildLLMCallOptionsWithTools 构建包含工具信息的LLM调用选项
+func (a *BaseAgent) buildLLMCallOptionsWithTools(toolCtx *ToolExecutionContext) *llm.CallOptions {
 	options := &llm.CallOptions{}
 
 	if a.executionConfig.MaxTokens > 0 {
@@ -450,6 +479,27 @@ func (a *BaseAgent) buildLLMCallOptions() *llm.CallOptions {
 
 	if a.executionConfig.Timeout > 0 {
 		// Note: 这里可能需要在LLM接口中添加超时支持
+	}
+
+	// 添加工具信息到LLM调用选项
+	if toolCtx != nil && toolCtx.HasTools() {
+		// 将Agent工具转换为LLM可理解的工具格式
+		llmTools := make([]llm.Tool, 0, len(toolCtx.Tools))
+		for _, tool := range toolCtx.Tools {
+			if tool != nil {
+				schema := tool.GetSchema()
+				llmTool := llm.Tool{
+					Type: "function",
+					Function: llm.ToolSchema{
+						Name:        schema.Name,
+						Description: schema.Description,
+						Parameters:  schema.Parameters,
+					},
+				}
+				llmTools = append(llmTools, llmTool)
+			}
+		}
+		options.Tools = llmTools
 	}
 
 	return options

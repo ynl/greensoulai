@@ -157,7 +157,55 @@ func (t *BaseTask) GetOutputFormat() OutputFormat {
 }
 
 func (t *BaseTask) GetTools() []Tool {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 	return t.tools
+}
+
+// AddTool 添加工具到任务
+func (t *BaseTask) AddTool(tool Tool) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if tool == nil {
+		return fmt.Errorf("tool cannot be nil")
+	}
+
+	// 检查工具是否已存在
+	for _, existingTool := range t.tools {
+		if existingTool.GetName() == tool.GetName() {
+			return fmt.Errorf("tool with name %s already exists", tool.GetName())
+		}
+	}
+
+	t.tools = append(t.tools, tool)
+	return nil
+}
+
+// SetTools 设置任务工具列表
+func (t *BaseTask) SetTools(tools []Tool) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	// 验证工具
+	for _, tool := range tools {
+		if tool == nil {
+			return fmt.Errorf("tool cannot be nil")
+		}
+		if tool.GetName() == "" {
+			return fmt.Errorf("tool name cannot be empty")
+		}
+	}
+
+	t.tools = tools
+	return nil
+}
+
+// HasTools 检查任务是否有工具
+func (t *BaseTask) HasTools() bool {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return len(t.tools) > 0
 }
 
 func (t *BaseTask) Validate() error {
@@ -198,16 +246,6 @@ func (t *BaseTask) SetHumanInputRequired(required bool) {
 // SetOutputFormat 设置输出格式
 func (t *BaseTask) SetOutputFormat(format OutputFormat) {
 	t.outputFormat = format
-}
-
-// AddTool 添加任务专用工具
-func (t *BaseTask) AddTool(tool Tool) {
-	t.tools = append(t.tools, tool)
-}
-
-// SetTools 设置任务工具
-func (t *BaseTask) SetTools(tools []Tool) {
-	t.tools = tools
 }
 
 // Clone 创建任务副本

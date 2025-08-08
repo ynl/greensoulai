@@ -1,0 +1,1 @@
+OPENROUTER_API_KEY=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 GARDEN_MODEL="moonshotai/kimi-k2:free" GARDEN_VERBOSE=0 go run ./examples/garden/cmd

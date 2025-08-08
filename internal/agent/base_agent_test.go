@@ -2,69 +2,14 @@ package agent
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
 	"github.com/ynl/greensoulai/internal/llm"
-	"github.com/ynl/greensoulai/pkg/events"
 	"github.com/ynl/greensoulai/pkg/logger"
 )
 
-// MockLLM 测试用的模拟LLM
-type MockLLM struct {
-	model      string
-	response   *llm.Response
-	shouldFail bool
-	callCount  int
-}
-
-func NewMockLLM(response *llm.Response, shouldFail bool) *MockLLM {
-	return &MockLLM{
-		model:      "mock-model",
-		response:   response,
-		shouldFail: shouldFail,
-		callCount:  0,
-	}
-}
-
-func (m *MockLLM) Call(ctx context.Context, messages []llm.Message, options *llm.CallOptions) (*llm.Response, error) {
-	m.callCount++
-	if m.shouldFail {
-		return nil, errors.New("mock LLM error")
-	}
-	return m.response, nil
-}
-
-func (m *MockLLM) Stream(ctx context.Context, messages []llm.Message, options *llm.CallOptions) (<-chan llm.StreamResponse, error) {
-	ch := make(chan llm.StreamResponse, 1)
-	defer close(ch)
-	if m.shouldFail {
-		ch <- llm.StreamResponse{Error: errors.New("mock stream error")}
-		return ch, nil
-	}
-	ch <- llm.StreamResponse{Delta: m.response.Content}
-	return ch, nil
-}
-
-func (m *MockLLM) CallStream(ctx context.Context, messages []llm.Message, options *llm.CallOptions) (<-chan llm.StreamResponse, error) {
-	return m.Stream(ctx, messages, options)
-}
-
-func (m *MockLLM) GetProvider() string                  { return "mock" }
-func (m *MockLLM) GetModel() string                     { return m.model }
-func (m *MockLLM) GetAPIKey() string                    { return "mock-key" }
-func (m *MockLLM) GetBaseURL() string                   { return "https://mock.api" }
-func (m *MockLLM) GetTimeout() time.Duration            { return 30 * time.Second }
-func (m *MockLLM) GetMaxRetries() int                   { return 3 }
-func (m *MockLLM) GetHTTPClient() interface{}           { return nil }
-func (m *MockLLM) GetLogger() logger.Logger             { return logger.NewTestLogger() }
-func (m *MockLLM) GetEventBus() events.EventBus         { return nil }
-func (m *MockLLM) GetCustomHeaders() map[string]string  { return nil }
-func (m *MockLLM) SupportsFunctionCalling() bool        { return true }
-func (m *MockLLM) GetContextWindowSize() int            { return 4096 }
-func (m *MockLLM) SetEventBus(eventBus events.EventBus) {}
-func (m *MockLLM) Close() error                         { return nil }
+// MockLLM和其他测试辅助对象在 mock_test.go 中集中管理
 
 // 测试Agent创建
 func TestNewBaseAgent(t *testing.T) {
@@ -199,32 +144,12 @@ func TestBaseAgent_Initialize_MissingLLM(t *testing.T) {
 
 // 测试简单任务执行
 func TestBaseAgent_Execute_Simple(t *testing.T) {
-	mockResponse := &llm.Response{
-		Content:      "This is a test response",
-		Model:        "mock-model",
-		FinishReason: "stop",
-		Usage: llm.Usage{
-			PromptTokens:     5,
-			CompletionTokens: 5,
-			TotalTokens:      10,
-			Cost:             0.01,
-		},
-	}
-
+	// 使用辅助函数创建标准Mock响应
+	mockResponse := createStandardMockResponse("This is a test response")
 	mockLLM := NewMockLLM(mockResponse, false)
-	testLogger := logger.NewTestLogger()
-	eventBus := events.NewEventBus(testLogger)
-
-	config := AgentConfig{
-		Role:      "Test Agent",
-		Goal:      "Test goal",
-		Backstory: "Test backstory",
-		LLM:       mockLLM,
-		Logger:    testLogger,
-		EventBus:  eventBus,
-	}
-
-	agent, err := NewBaseAgent(config)
+	
+	// 使用辅助函数创建测试Agent
+	agent, err := createTestAgent(mockLLM)
 	if err != nil {
 		t.Fatalf("failed to create agent: %v", err)
 	}
@@ -256,8 +181,8 @@ func TestBaseAgent_Execute_Simple(t *testing.T) {
 	}
 
 	// 验证LLM被调用
-	if mockLLM.callCount != 1 {
-		t.Errorf("expected 1 LLM call, got %d", mockLLM.callCount)
+	if mockLLM.GetCallCount() != 1 {
+		t.Errorf("expected 1 LLM call, got %d", mockLLM.GetCallCount())
 	}
 }
 
@@ -894,39 +819,4 @@ func TestBaseAgent_ReasoningFeatures(t *testing.T) {
 	}
 }
 
-// Mock推理处理器用于测试
-type MockReasoningHandler struct{}
-
-func (m *MockReasoningHandler) HandleReasoning(ctx context.Context, task Task, agent Agent) (*ReasoningOutput, error) {
-	return &ReasoningOutput{
-		Plan: ReasoningPlan{
-			Plan:  "Mock reasoning plan",
-			Ready: true,
-		},
-		Success:    true,
-		Duration:   time.Millisecond * 100,
-		Iterations: 1,
-		FinalReady: true,
-		Metadata:   make(map[string]interface{}),
-		CreatedAt:  time.Now(),
-	}, nil
-}
-
-func (m *MockReasoningHandler) CreatePlan(ctx context.Context, task Task, agent Agent) (*ReasoningPlan, error) {
-	return &ReasoningPlan{
-		Plan:  "Mock plan",
-		Ready: true,
-	}, nil
-}
-
-func (m *MockReasoningHandler) RefinePlan(ctx context.Context, plan *ReasoningPlan, feedback string) (*ReasoningPlan, error) {
-	return plan, nil
-}
-
-func (m *MockReasoningHandler) IsReady(plan *ReasoningPlan) bool {
-	return plan != nil && plan.Ready
-}
-
-func (m *MockReasoningHandler) GetPlanSteps(plan *ReasoningPlan) []ReasoningStep {
-	return []ReasoningStep{}
-}
+// MockReasoningHandler现在在 testing_mocks.go 中定义
