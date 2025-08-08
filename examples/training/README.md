@@ -201,3 +201,4 @@ config.Iterations = 3
 - **自定义事件处理器** - 集成外部监控系统
 
 查看 `internal/training/` 目录中的接口定义了解更多扩展可能性。
+

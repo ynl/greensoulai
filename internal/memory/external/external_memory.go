@@ -309,3 +309,4 @@ func (em *ExternalMemory) Close() error {
 	// 关闭基础记忆
 	return em.BaseMemory.Close()
 }
+

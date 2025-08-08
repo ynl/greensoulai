@@ -462,3 +462,4 @@ func NewEvaluationSessionCompletedEvent(source interface{}, sessionID, evaluatio
 		SuccessRate:           successRate,
 	}
 }
+

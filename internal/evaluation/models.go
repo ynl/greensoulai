@@ -297,3 +297,4 @@ func (c *EvaluationConfig) Validate() error {
 	}
 	return nil
 }
+

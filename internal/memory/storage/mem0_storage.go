@@ -196,3 +196,4 @@ func (m *Mem0Storage) convertToMem0Format(item memory.MemoryItem) (map[string]in
 	// 这里需要根据Mem0 API的要求格式来转换
 	return nil, fmt.Errorf("Mem0 format conversion not implemented")
 }
+

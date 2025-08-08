@@ -244,3 +244,4 @@ type EvaluatorFactory interface {
 	// SetLogger 设置日志器
 	SetLogger(logger logger.Logger)
 }
+
