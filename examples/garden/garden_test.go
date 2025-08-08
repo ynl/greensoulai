@@ -2,11 +2,17 @@ package garden
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 )
 
 func TestRunGarden_MinimalFlow(t *testing.T) {
+	// 检查是否有API key，没有则跳过测试
+	if os.Getenv("OPENROUTER_API_KEY") == "" {
+		t.Skip("跳过集成测试：需要OPENROUTER_API_KEY环境变量")
+	}
+	
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 

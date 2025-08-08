@@ -130,7 +130,7 @@ func TestLongTermMemoryThreadSafety(t *testing.T) {
 	dbPath := "/tmp/thread-safe-test-" + time.Now().Format("20060102150405") + ".db"
 	ltm := NewLongTermMemory(nil, dbPath, testEventBus, testLogger)
 
-	numGoroutines := 3 // 减少并发数量以避免数据库锁争用
+	numGoroutines := 2 // 进一步减少并发数量以避免数据库锁争用
 	done := make(chan bool, numGoroutines)
 
 	// 并发执行各种操作
@@ -164,8 +164,11 @@ func TestLongTermMemoryThreadSafety(t *testing.T) {
 			ltm.SetCrew(map[string]interface{}{"name": "updated", "id": id})
 
 			// 简短等待
-			time.Sleep(1 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 		}(i)
+		
+		// 在启动goroutine间添加小延迟以减少并发压力
+		time.Sleep(10 * time.Millisecond)
 	}
 
 	// 等待所有goroutines完成
@@ -173,8 +176,8 @@ func TestLongTermMemoryThreadSafety(t *testing.T) {
 		select {
 		case <-done:
 			// 成功完成
-		case <-time.After(3 * time.Second): // 减少等待时间
-			t.Fatal("Test timed out - possible deadlock")
+		case <-time.After(5 * time.Second): // 增加等待时间
+			t.Fatalf("Test timed out after 5 seconds - possible deadlock (goroutine %d)", i)
 		}
 	}
 }

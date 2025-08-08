@@ -393,24 +393,21 @@ func TestRunTrainingSession(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	utils := NewTrainingUtils(testLogger)
 	
-	mockHandler := &MockTrainingHandler{}
 	config := CreateSimpleTrainingConfig(3, "test_session.json")
 	config.EarlyStopping = false // 禁用早停以简化测试
 	
-	ctx := context.Background()
-	
-	// 设置mock期望
-	mockHandler.On("StartTraining", ctx, config).Return(nil)
-	mockHandler.On("StopTraining", ctx).Return(nil)
-	
-	// 由于我们需要访问CrewTrainingHandler的内部方法，这个测试需要重新设计
-	// 或者我们需要将ExecuteIteration方法添加到接口中
-	
-	// 现在我们只测试配置验证
+	// 这个测试主要验证配置验证功能
+	// Mock期望已移除，因为我们不实际调用training handler的方法
 	err := utils.ValidateTrainingConfig(config)
 	assert.NoError(t, err)
 	
-	mockHandler.AssertExpectations(t)
+	// 验证配置内容
+	assert.Equal(t, 3, config.Iterations)
+	assert.Equal(t, "test_session.json", config.Filename)
+	assert.False(t, config.EarlyStopping)
+	
+	// 注意：未来如果需要测试完整的训练会话流程，需要重构设计
+	t.Log("Configuration validation passed")
 }
 
 func TestRunTrainingSessionWithCancellation(t *testing.T) {

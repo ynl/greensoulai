@@ -1,6 +1,6 @@
 {
-  "created_at": "2025-08-07T20:06:50.068276+08:00",
-  "updated_at": "2025-08-07T20:06:50.068362+08:00",
+  "created_at": "2025-08-08T21:17:21.102209+08:00",
+  "updated_at": "2025-08-08T21:17:21.102227+08:00",
   "version": "1.0",
   "config": {
     "iterations": 10,
@@ -30,15 +30,15 @@
     "auto_save": true,
     "backup_count": 3
   },
-  "session_id": "396455b3-dde6-41c5-9b7d-c2a61f938282",
+  "session_id": "3f25dba6-9abb-4134-be81-7f6f746e125f",
   "crew_name": "",
   "total_runs": 1,
   "iterations": [
     {
-      "iteration_id": "406b7202-e9d9-4f81-a62e-f1e5d99bb291",
+      "iteration_id": "81b9efbb-5df4-4cc6-a8e5-1c437ce5a85c",
       "index": 0,
-      "timestamp": "2025-08-07T20:06:50.068315+08:00",
-      "duration": 23041,
+      "timestamp": "2025-08-08T21:17:21.10222+08:00",
+      "duration": 3209,
       "inputs": null,
       "outputs": null,
       "success": false,

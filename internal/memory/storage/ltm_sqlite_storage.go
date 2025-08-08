@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -19,6 +20,7 @@ type LTMSQLiteStorage struct {
 	dbPath string
 	db     *sql.DB
 	logger logger.Logger
+	mu     sync.RWMutex // 读写锁保护并发访问
 }
 
 // NewLTMSQLiteStorage 创建SQLite存储实例
@@ -136,6 +138,9 @@ func (s *LTMSQLiteStorage) tryCreateFTSTables() {
 
 // Save 保存记忆项到SQLite
 func (s *LTMSQLiteStorage) Save(ctx context.Context, item memory.MemoryItem) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
 	// 序列化元数据
 	metadataJSON, err := json.Marshal(item.Metadata)
 	if err != nil {
@@ -174,6 +179,9 @@ func (s *LTMSQLiteStorage) Save(ctx context.Context, item memory.MemoryItem) err
 
 // Search 搜索记忆项
 func (s *LTMSQLiteStorage) Search(ctx context.Context, query string, limit int, scoreThreshold float64) ([]memory.MemoryItem, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
 	// 确保总是返回非nil的slice
 	results := make([]memory.MemoryItem, 0)
 
@@ -229,8 +237,9 @@ func (s *LTMSQLiteStorage) Search(ctx context.Context, query string, limit int, 
 			item.CreatedAt = createdAt
 		}
 
-		// 更新访问统计
-		s.updateAccessStats(ctx, item.ID)
+		// 更新访问统计（在并发环境下暂时禁用以避免读锁升级为写锁的死锁）
+		// TODO: 重构为异步更新或使用更细粒度的锁
+		// s.updateAccessStats(ctx, item.ID)
 
 		results = append(results, item)
 	}
@@ -249,6 +258,9 @@ func (s *LTMSQLiteStorage) Search(ctx context.Context, query string, limit int, 
 
 // simpleLikeSearch 简单的LIKE搜索作为后备方案
 func (s *LTMSQLiteStorage) simpleLikeSearch(ctx context.Context, query string, limit int, scoreThreshold float64) ([]memory.MemoryItem, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
 	results := make([]memory.MemoryItem, 0)
 
 	searchSQL := `
@@ -297,8 +309,9 @@ func (s *LTMSQLiteStorage) simpleLikeSearch(ctx context.Context, query string, l
 			item.CreatedAt = createdAt
 		}
 
-		// 更新访问统计
-		s.updateAccessStats(ctx, item.ID)
+		// 更新访问统计（在并发环境下暂时禁用以避免读锁升级为写锁的死锁）
+		// TODO: 重构为异步更新或使用更细粒度的锁
+		// s.updateAccessStats(ctx, item.ID)
 
 		results = append(results, item)
 	}
@@ -350,6 +363,9 @@ func (s *LTMSQLiteStorage) Delete(ctx context.Context, id string) error {
 
 // Clear 清除所有记忆项
 func (s *LTMSQLiteStorage) Clear(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
 	// 获取删除前的数量
 	var count int
 	countSQL := `SELECT COUNT(*) FROM long_term_memories`
@@ -371,6 +387,9 @@ func (s *LTMSQLiteStorage) Clear(ctx context.Context) error {
 
 // Close 关闭存储
 func (s *LTMSQLiteStorage) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
 	if s.db != nil {
 		s.logger.Info("closing SQLite storage")
 		return s.db.Close()

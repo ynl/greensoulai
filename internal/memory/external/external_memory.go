@@ -310,3 +310,9 @@ func (em *ExternalMemory) Close() error {
 	return em.BaseMemory.Close()
 }
 
+// SetCrew 重写BaseMemory的SetCrew方法，确保返回ExternalMemory类型
+func (em *ExternalMemory) SetCrew(crew interface{}) memory.Memory {
+	em.BaseMemory.SetCrew(crew)
+	return em
+}
+
