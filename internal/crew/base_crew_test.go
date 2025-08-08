@@ -239,10 +239,6 @@ func (m *MockTask) SetContext(context map[string]interface{}) {
 	// Mock实现，不做实际存储
 }
 
-func (m *MockTask) SetDescription(description string) {
-	m.description = description
-}
-
 func (m *MockTask) GetName() string {
 	return "mock-task"
 }
