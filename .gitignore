@@ -1,101 +1,17 @@
-# Binaries for programs and plugins
+# 编译产物
 *.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+main
+examples/complete/ai_research_assistant
+examples/complete/quick_start
+examples/complete/simple_kimi_demo
 
-# Test binary, built with `go test -c`
-*.test
+# 临时文件
+*.tmp
+*.log
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Dependency directories
-vendor/
-
-# Go workspace file
-go.work
-
-# Build artifacts
-bin/
-build/
-dist/
-
-# IDE files
+# IDE 文件
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
 
-# OS generated files
+# macOS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Log files
-*.log
-logs/
-
-# Configuration files (keep templates)
-config.yaml
-config.json
-*.env
-.env.local
-.env.production
-
-# Coverage reports
-coverage.out
-coverage.html
-coverage/
-
-# Temporary files
-tmp/
-temp/
-
-# Database files
-*.db
-*.sqlite
-*.sqlite3
-
-# Cache directories
-.cache/
-cache/
-
-# Documentation build
-docs/_build/
-docs/site/
-
-# Docker
-.dockerignore
-
-# Air (live reload tool)
-tmp/
-
-# Profiling files
-*.prof
-*.pprof
-
-# Memory dumps
-*.hprof
-*.dump
-
-# Security
-*.pem
-*.key
-*.crt
-*.p12
-
-# Local development
-local/
-dev/
-
-# Backup files
-*.bak
-*.backup
-*.backup_*
