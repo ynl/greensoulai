@@ -347,13 +347,13 @@ func (c *BaseCrew) TrainWithConfig(ctx context.Context, config *TrainingConfig) 
 	}
 
 	// 设置默认配置
-	if config.CollectFeedback == false {
+	if !config.CollectFeedback {
 		config.CollectFeedback = true
 	}
-	if config.MetricsEnabled == false {
+	if !config.MetricsEnabled {
 		config.MetricsEnabled = true
 	}
-	if config.AutoSave == false {
+	if !config.AutoSave {
 		config.AutoSave = true
 	}
 

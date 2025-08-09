@@ -179,6 +179,44 @@ func main() {
 
 提示：也可直接运行并行工作流示例 `examples/workflow/simple_usage.go`，快速体验 Job/Trigger 的并行编排与性能指标。
 
+## 🎯 完整示例
+
+我们提供了完整的端到端示例，展示所有核心功能的实际使用：
+
+### 🚀 5分钟快速体验
+
+```bash
+# 设置 OpenAI API 密钥
+export OPENAI_API_KEY="your-openai-api-key-here"
+
+# 运行快速开始示例
+cd examples/complete
+go run quick_start.go
+```
+
+这个示例将展示：
+- ✅ 创建和配置 AI Agent
+- ✅ 使用真实的 OpenAI API
+- ✅ Agent 智能使用工具
+- ✅ 完整的对话和推理过程
+
+### 🏢 完整的 AI 研究助手
+
+```bash
+# 运行完整的端到端示例
+cd examples/complete  
+go run ai_research_assistant.go
+```
+
+这个高级示例包含：
+- **三个完整场景**：单Agent研究、团队协作、复杂工作流
+- **真实工具集成**：网络搜索、数据分析、文档生成
+- **Crew团队协作**：多个专业Agent协同工作
+- **事件系统监控**：实时跟踪整个AI工作流
+- **生产级功能**：错误处理、超时控制、Token统计
+
+> 📖 查看完整说明：[examples/complete/README.md](examples/complete/README.md)
+
 ## 🌸 Garden 场景（用户故事与产品应用）
 
 ### 用户故事（多轮群聊协作）
