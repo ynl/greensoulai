@@ -63,7 +63,98 @@ GreenSoul AI 是一个用 Go 语言构建的多智能体协作框架，灵感来
 go get github.com/ynl/greensoulai
 ```
 
-### 第一个智能体
+### 方式一：使用 CLI 工具（推荐）
+
+我们提供了强大的 CLI 工具，让您可以快速创建和管理 AI 项目：
+
+#### 1. 构建 CLI 工具
+
+```bash
+# 克隆项目
+git clone https://github.com/ynl/greensoulai.git
+cd greensoulai
+
+# 构建 CLI 工具
+make build-cli
+# 或者
+go build -o greensoulai cmd/greensoulai/main.go
+```
+
+#### 2. 创建新项目
+
+```bash
+# 创建 Crew 项目（推荐用于团队协作）
+./greensoulai create crew my-ai-project
+
+# 创建 Flow 项目（用于工作流编排）
+./greensoulai create flow my-workflow-project
+
+# 查看帮助
+./greensoulai --help
+```
+
+#### 3. 项目结构
+
+CLI 工具会自动生成完整的项目结构：
+
+```
+my-ai-project/
+├── greensoulai.yaml      # 项目配置文件
+├── go.mod               # Go 模块文件
+├── .env.example         # 环境变量模板
+├── README.md           # 项目文档
+├── Makefile           # 构建脚本
+├── cmd/               # 主程序入口
+├── internal/          # 内部实现
+│   ├── agents/        # 智能体定义
+│   ├── tasks/         # 任务定义
+│   ├── tools/         # 自定义工具
+│   └── crew/          # 团队配置
+├── config/            # 配置文件
+└── scripts/           # 辅助脚本
+```
+
+#### 4. 配置和运行
+
+```bash
+cd my-ai-project
+
+# 复制并配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，设置您的 OPENAI_API_KEY
+
+# 安装依赖
+go mod download
+
+# 运行项目
+./greensoulai run
+```
+
+#### CLI 高级功能
+
+```bash
+# 在现有项目中添加智能体
+./greensoulai create agent researcher --role "研究专家" --goal "深度研究分析"
+
+# 添加新任务
+./greensoulai create task research --agent researcher --description "进行市场研究"
+
+# 添加自定义工具
+./greensoulai create tool search_engine --description "网络搜索工具"
+
+# 训练和评估项目
+./greensoulai train --iterations 10
+./greensoulai evaluate --output evaluation_report.json
+
+# 查看版本信息
+./greensoulai version
+```
+
+### 方式二：手动编码
+
+如果您喜欢从头开始编写代码，这里是一个简单的示例：
+
+#### 第一个智能体
 
 创建一个简单的研究助手：
 

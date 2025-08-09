@@ -3,6 +3,7 @@ package planning
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -320,8 +321,9 @@ func TestCrewPlannerEventEmission(t *testing.T) {
 	assert.True(t, eventTypes["completed"], "Planning completed event should be emitted")
 }
 
-// MockEventCollector 用于收集和验证事件的辅助结构
+// MockEventCollector 用于收集和验证事件的辅助结构（线程安全版本）
 type MockEventCollector struct {
+	mu     sync.RWMutex
 	events []MockEvent
 }
 
@@ -331,6 +333,8 @@ type MockEvent struct {
 }
 
 func (mec *MockEventCollector) AddEvent(eventType string, data interface{}) {
+	mec.mu.Lock()
+	defer mec.mu.Unlock()
 	mec.events = append(mec.events, MockEvent{
 		Type: eventType,
 		Data: data,
@@ -338,7 +342,12 @@ func (mec *MockEventCollector) AddEvent(eventType string, data interface{}) {
 }
 
 func (mec *MockEventCollector) GetEvents() []MockEvent {
-	return mec.events
+	mec.mu.RLock()
+	defer mec.mu.RUnlock()
+	// 返回副本以避免外部修改
+	result := make([]MockEvent, len(mec.events))
+	copy(result, mec.events)
+	return result
 }
 
 func TestCrewPlannerIntegrationScenario(t *testing.T) {

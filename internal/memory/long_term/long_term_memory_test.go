@@ -166,7 +166,7 @@ func TestLongTermMemoryThreadSafety(t *testing.T) {
 			// 简短等待
 			time.Sleep(10 * time.Millisecond)
 		}(i)
-		
+
 		// 在启动goroutine间添加小延迟以减少并发压力
 		time.Sleep(10 * time.Millisecond)
 	}

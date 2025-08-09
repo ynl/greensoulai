@@ -84,9 +84,9 @@ func (m *MockLogger) Fatal(msg string, fields ...logger.Field) {
 func TestNewCrewTrainingHandler(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
-	
+
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	assert.NotNil(t, handler)
 	assert.Equal(t, testLogger, handler.logger)
 	assert.Equal(t, testEventBus, handler.eventBus)
@@ -102,7 +102,7 @@ func TestStartTraining(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	config := &TrainingConfig{
 		Iterations:      5,
 		Filename:        "test_training.json",
@@ -113,18 +113,18 @@ func TestStartTraining(t *testing.T) {
 			"task": "test task",
 		},
 	}
-	
+
 	ctx := context.Background()
 	err := handler.StartTraining(ctx, config)
-	
+
 	assert.NoError(t, err)
-	
+
 	// 验证训练状态
 	status := handler.GetTrainingStatus(ctx)
 	assert.True(t, status.IsRunning)
 	assert.Equal(t, 5, status.TotalIterations)
 	assert.Equal(t, "starting", status.Status)
-	
+
 	// 验证训练数据初始化
 	assert.NotNil(t, handler.trainingData)
 	assert.Equal(t, config, handler.trainingData.Config)
@@ -137,14 +137,14 @@ func TestStartTrainingAlreadyRunning(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	config := DefaultTrainingConfig()
 	ctx := context.Background()
-	
+
 	// 第一次开始训练
 	err := handler.StartTraining(ctx, config)
 	assert.NoError(t, err)
-	
+
 	// 第二次开始训练应该失败
 	err = handler.StartTraining(ctx, config)
 	assert.Error(t, err)
@@ -156,15 +156,15 @@ func TestExecuteIteration(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	config := DefaultTrainingConfig()
 	config.CollectFeedback = false // 禁用反馈以简化测试
 	config.MetricsEnabled = false
-	
+
 	ctx := context.Background()
 	err := handler.StartTraining(ctx, config)
 	require.NoError(t, err)
-	
+
 	// 创建模拟执行函数
 	executeFunc := func(ctx context.Context, inputs map[string]interface{}) (interface{}, error) {
 		return map[string]interface{}{
@@ -172,9 +172,9 @@ func TestExecuteIteration(t *testing.T) {
 			"status": "success",
 		}, nil
 	}
-	
+
 	iteration, err := handler.ExecuteIteration(ctx, executeFunc, 0)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, iteration)
 	assert.Equal(t, 0, iteration.Index)
@@ -182,7 +182,7 @@ func TestExecuteIteration(t *testing.T) {
 	assert.NotEmpty(t, iteration.IterationID)
 	assert.NotNil(t, iteration.Outputs)
 	assert.Greater(t, iteration.Duration, time.Duration(0))
-	
+
 	// 验证输出内容
 	outputs, ok := iteration.Outputs.(map[string]interface{})
 	assert.True(t, ok)
@@ -195,22 +195,22 @@ func TestExecuteIterationWithError(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	config := DefaultTrainingConfig()
 	config.CollectFeedback = false
 	config.MetricsEnabled = false
-	
+
 	ctx := context.Background()
 	err := handler.StartTraining(ctx, config)
 	require.NoError(t, err)
-	
+
 	// 创建会失败的执行函数
 	executeFunc := func(ctx context.Context, inputs map[string]interface{}) (interface{}, error) {
 		return nil, fmt.Errorf("execution failed for testing")
 	}
-	
+
 	iteration, err := handler.ExecuteIteration(ctx, executeFunc, 0)
-	
+
 	assert.NoError(t, err) // ExecuteIteration本身不应该返回错误
 	assert.NotNil(t, iteration)
 	assert.False(t, iteration.Success)
@@ -223,20 +223,20 @@ func TestGetTrainingStatus(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	ctx := context.Background()
-	
+
 	// 测试初始状态
 	status := handler.GetTrainingStatus(ctx)
 	assert.False(t, status.IsRunning)
 	assert.Equal(t, "initialized", status.Status)
 	assert.Equal(t, 0, status.CurrentIteration)
-	
+
 	// 开始训练后的状态
 	config := DefaultTrainingConfig()
 	err := handler.StartTraining(ctx, config)
 	require.NoError(t, err)
-	
+
 	status = handler.GetTrainingStatus(ctx)
 	assert.True(t, status.IsRunning)
 	assert.Equal(t, config.Iterations, status.TotalIterations)
@@ -249,23 +249,23 @@ func TestStopTraining(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	ctx := context.Background()
 	config := DefaultTrainingConfig()
 	config.AutoSave = false // 禁用自动保存以简化测试
-	
+
 	// 开始训练
 	err := handler.StartTraining(ctx, config)
 	require.NoError(t, err)
-	
+
 	// 验证训练正在运行
 	status := handler.GetTrainingStatus(ctx)
 	assert.True(t, status.IsRunning)
-	
+
 	// 停止训练
 	err = handler.StopTraining(ctx)
 	assert.NoError(t, err)
-	
+
 	// 验证训练已停止
 	status = handler.GetTrainingStatus(ctx)
 	assert.False(t, status.IsRunning)
@@ -276,9 +276,9 @@ func TestStopTrainingNotRunning(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	ctx := context.Background()
-	
+
 	// 尝试停止未开始的训练
 	err := handler.StopTraining(ctx)
 	assert.Error(t, err)
@@ -290,11 +290,11 @@ func TestSaveTrainingData(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	// 创建测试目录
 	tempDir := t.TempDir()
 	filename := filepath.Join(tempDir, "test_training_data.json")
-	
+
 	// 创建测试数据
 	trainingData := &TrainingData{
 		CreatedAt: time.Now(),
@@ -318,22 +318,22 @@ func TestSaveTrainingData(t *testing.T) {
 			FailedRuns:      0,
 		},
 	}
-	
+
 	handler.trainingData = trainingData
 	handler.config = &TrainingConfig{
 		Filename:    filename,
 		BackupCount: 0, // 禁用备份以简化测试
 	}
-	
+
 	ctx := context.Background()
 	err := handler.SaveTrainingData(ctx, trainingData)
-	
+
 	assert.NoError(t, err)
-	
+
 	// 验证文件是否存在
 	_, err = os.Stat(filename)
 	assert.NoError(t, err)
-	
+
 	// 验证可以加载数据
 	loadedData, err := handler.LoadTrainingData(ctx, filename)
 	assert.NoError(t, err)
@@ -347,13 +347,13 @@ func TestLoadTrainingData(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	ctx := context.Background()
-	
+
 	// 测试加载不存在的文件
 	_, err := handler.LoadTrainingData(ctx, "nonexistent.json")
 	assert.Error(t, err)
-	
+
 	// 测试加载空文件名
 	_, err = handler.LoadTrainingData(ctx, "")
 	assert.Error(t, err)
@@ -365,7 +365,7 @@ func TestCollectFeedback(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	// 初始化训练数据
 	handler.trainingData = &TrainingData{
 		Iterations: []*IterationData{
@@ -376,17 +376,17 @@ func TestCollectFeedback(t *testing.T) {
 			},
 		},
 	}
-	
+
 	feedback := &HumanFeedback{
 		IterationID:   "test-iteration-1",
 		QualityScore:  8.5,
 		AccuracyScore: 9.0,
 		Comments:      "Great job!",
 	}
-	
+
 	ctx := context.Background()
 	err := handler.CollectFeedback(ctx, "test-iteration-1", feedback)
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, feedback, handler.trainingData.Iterations[0].Feedback)
 }
@@ -396,18 +396,18 @@ func TestCollectFeedbackNotFound(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	handler.trainingData = &TrainingData{
 		Iterations: []*IterationData{},
 	}
-	
+
 	feedback := &HumanFeedback{
 		IterationID: "nonexistent-iteration",
 	}
-	
+
 	ctx := context.Background()
 	err := handler.CollectFeedback(ctx, "nonexistent-iteration", feedback)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "iteration not found")
 }
@@ -417,14 +417,14 @@ func TestCheckEarlyStop(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	// 设置早停配置
 	handler.config = &TrainingConfig{
-		EarlyStopping:  true,
+		EarlyStopping:   true,
 		PatientceEpochs: 3,
-		MinImprovement: 0.1,
+		MinImprovement:  0.1,
 	}
-	
+
 	tests := []struct {
 		name     string
 		scores   []float64
@@ -451,7 +451,7 @@ func TestCheckEarlyStop(t *testing.T) {
 			expected: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := handler.CheckEarlyStop(tt.scores)
@@ -465,12 +465,12 @@ func TestCheckEarlyStopDisabled(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	// 禁用早停
 	handler.config = &TrainingConfig{
 		EarlyStopping: false,
 	}
-	
+
 	// 即使分数没有改进，也不应该触发早停
 	result := handler.CheckEarlyStop([]float64{7.0, 7.0, 7.0, 7.0})
 	assert.False(t, result)
@@ -481,19 +481,19 @@ func BenchmarkExecuteIteration(b *testing.B) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	config := DefaultTrainingConfig()
 	config.CollectFeedback = false
 	config.MetricsEnabled = false
 	config.AutoSave = false
-	
+
 	ctx := context.Background()
 	handler.StartTraining(ctx, config)
-	
+
 	executeFunc := func(ctx context.Context, inputs map[string]interface{}) (interface{}, error) {
 		return map[string]interface{}{"result": "benchmark"}, nil
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		handler.ExecuteIteration(ctx, executeFunc, i)
@@ -505,32 +505,31 @@ func TestConcurrentAccess(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	handler := NewCrewTrainingHandler(testEventBus, testLogger)
-	
+
 	config := DefaultTrainingConfig()
 	config.CollectFeedback = false
 	config.MetricsEnabled = false
-	
+
 	ctx := context.Background()
 	handler.StartTraining(ctx, config)
-	
+
 	numGoroutines := 5
 	done := make(chan bool, numGoroutines)
-	
+
 	// 并发获取状态
 	for i := 0; i < numGoroutines; i++ {
 		go func() {
 			defer func() { done <- true }()
-			
+
 			for j := 0; j < 10; j++ {
 				status := handler.GetTrainingStatus(ctx)
 				assert.NotNil(t, status)
 			}
 		}()
 	}
-	
+
 	// 等待所有goroutines完成
 	for i := 0; i < numGoroutines; i++ {
 		<-done
 	}
 }
-

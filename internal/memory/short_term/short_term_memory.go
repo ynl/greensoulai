@@ -171,4 +171,3 @@ func (stm *ShortTermMemory) ClearTask(ctx context.Context, taskID string) error 
 	// 这需要存储层支持按元数据删除
 	return fmt.Errorf("task-specific clear not implemented yet")
 }
-

@@ -11,7 +11,7 @@ import (
 // TestDefaultTrainingConfig 测试默认训练配置
 func TestDefaultTrainingConfig(t *testing.T) {
 	config := DefaultTrainingConfig()
-	
+
 	assert.NotNil(t, config)
 	assert.Equal(t, 10, config.Iterations)
 	assert.Equal(t, "training_data.json", config.Filename)
@@ -29,14 +29,14 @@ func TestDefaultTrainingConfig(t *testing.T) {
 	assert.True(t, config.Verbose)
 	assert.True(t, config.AutoSave)
 	assert.Equal(t, 3, config.BackupCount)
-	
+
 	// 验证默认的反馈提示
 	expectedPrompts := []string{
 		"Please rate the quality of this output (1-10):",
 		"Any suggestions for improvement?",
 	}
 	assert.Equal(t, expectedPrompts, config.FeedbackPrompts)
-	
+
 	// 验证默认的目标指标
 	expectedMetrics := []string{"execution_time", "success_rate", "feedback_score"}
 	assert.Equal(t, expectedMetrics, config.TargetMetrics)
@@ -84,7 +84,7 @@ func TestTrainingConfigValidation(t *testing.T) {
 			valid: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.valid {
@@ -102,7 +102,7 @@ func TestTrainingConfigValidation(t *testing.T) {
 func TestTrainingData(t *testing.T) {
 	now := time.Now()
 	config := DefaultTrainingConfig()
-	
+
 	data := &TrainingData{
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -126,7 +126,7 @@ func TestTrainingData(t *testing.T) {
 			FailedRuns:      0,
 		},
 	}
-	
+
 	assert.Equal(t, now, data.CreatedAt)
 	assert.Equal(t, now, data.UpdatedAt)
 	assert.Equal(t, "1.0", data.Version)
@@ -144,17 +144,17 @@ func TestTrainingData(t *testing.T) {
 func TestIterationData(t *testing.T) {
 	now := time.Now()
 	duration := 500 * time.Millisecond
-	
+
 	inputs := map[string]interface{}{
 		"task": "test task",
 		"goal": "test goal",
 	}
-	
+
 	outputs := map[string]interface{}{
 		"result": "test result",
 		"status": "completed",
 	}
-	
+
 	feedback := &HumanFeedback{
 		IterationID:   "iter-feedback-1",
 		QualityScore:  8.5,
@@ -162,14 +162,14 @@ func TestIterationData(t *testing.T) {
 		Usefulness:    7.8,
 		Comments:      "Good quality output",
 	}
-	
+
 	metrics := &PerformanceMetrics{
 		ExecutionTime: duration,
 		SuccessRate:   1.0,
 		AverageScore:  8.5,
 		TokensUsed:    150,
 	}
-	
+
 	agentData := []*AgentIterationData{
 		{
 			AgentRole:     "writer",
@@ -179,7 +179,7 @@ func TestIterationData(t *testing.T) {
 			Success:       true,
 		},
 	}
-	
+
 	taskData := []*TaskIterationData{
 		{
 			TaskDescription: "Write a blog post",
@@ -189,7 +189,7 @@ func TestIterationData(t *testing.T) {
 			ValidationScore: 8.7,
 		},
 	}
-	
+
 	iteration := &IterationData{
 		IterationID: "test-iteration-1",
 		Index:       0,
@@ -203,7 +203,7 @@ func TestIterationData(t *testing.T) {
 		AgentData:   agentData,
 		TaskData:    taskData,
 	}
-	
+
 	assert.Equal(t, "test-iteration-1", iteration.IterationID)
 	assert.Equal(t, 0, iteration.Index)
 	assert.Equal(t, now, iteration.Timestamp)
@@ -221,7 +221,7 @@ func TestIterationData(t *testing.T) {
 // TestHumanFeedback 测试人工反馈结构
 func TestHumanFeedback(t *testing.T) {
 	now := time.Now()
-	
+
 	feedback := &HumanFeedback{
 		IterationID:   "feedback-test-1",
 		Timestamp:     now,
@@ -232,15 +232,15 @@ func TestHumanFeedback(t *testing.T) {
 		Suggestions:   "Consider adding more examples",
 		Issues:        []string{"grammar error in line 3", "unclear explanation"},
 		Categories: map[string]float64{
-			"clarity":     8.0,
+			"clarity":      8.0,
 			"completeness": 7.5,
-			"creativity":  9.0,
+			"creativity":   9.0,
 		},
 		Tags:       []string{"quality", "improvement", "feedback"},
 		Verified:   true,
 		VerifiedBy: "human_reviewer",
 	}
-	
+
 	assert.Equal(t, "feedback-test-1", feedback.IterationID)
 	assert.Equal(t, now, feedback.Timestamp)
 	assert.Equal(t, 8.5, feedback.QualityScore)
@@ -274,7 +274,7 @@ func TestPerformanceMetrics(t *testing.T) {
 			ToolUsageCount:     5,
 		},
 	}
-	
+
 	taskMetrics := map[string]*TaskMetrics{
 		"write_article": {
 			ExecutionCount:      2,
@@ -284,23 +284,23 @@ func TestPerformanceMetrics(t *testing.T) {
 			ValidationScore:     8.5,
 		},
 	}
-	
+
 	metrics := &PerformanceMetrics{
-		ExecutionTime:     500 * time.Millisecond,
-		SuccessRate:       0.9,
-		ErrorRate:         0.1,
-		MemoryUsage:       1024 * 1024, // 1MB
-		CPUUsage:          45.5,
-		TokensUsed:        250,
-		AverageScore:      8.2,
-		FeedbackScore:     8.5,
-		ValidationScore:   8.0,
-		AgentPerformance:  agentMetrics,
-		TaskPerformance:   taskMetrics,
-		ImprovementRate:   15.3,
-		ConsistencyScore:  0.85,
+		ExecutionTime:    500 * time.Millisecond,
+		SuccessRate:      0.9,
+		ErrorRate:        0.1,
+		MemoryUsage:      1024 * 1024, // 1MB
+		CPUUsage:         45.5,
+		TokensUsed:       250,
+		AverageScore:     8.2,
+		FeedbackScore:    8.5,
+		ValidationScore:  8.0,
+		AgentPerformance: agentMetrics,
+		TaskPerformance:  taskMetrics,
+		ImprovementRate:  15.3,
+		ConsistencyScore: 0.85,
 	}
-	
+
 	assert.Equal(t, 500*time.Millisecond, metrics.ExecutionTime)
 	assert.Equal(t, 0.9, metrics.SuccessRate)
 	assert.Equal(t, 0.1, metrics.ErrorRate)
@@ -314,13 +314,13 @@ func TestPerformanceMetrics(t *testing.T) {
 	assert.Len(t, metrics.TaskPerformance, 1)
 	assert.Equal(t, 15.3, metrics.ImprovementRate)
 	assert.Equal(t, 0.85, metrics.ConsistencyScore)
-	
+
 	// 验证Agent指标
 	writerMetrics := metrics.AgentPerformance["writer"]
 	assert.Equal(t, 5, writerMetrics.ExecutionCount)
 	assert.Equal(t, 0.8, writerMetrics.SuccessRate)
 	assert.Equal(t, 100, writerMetrics.TokensPerExecution)
-	
+
 	// 验证任务指标
 	articleMetrics := metrics.TaskPerformance["write_article"]
 	assert.Equal(t, 2, articleMetrics.ExecutionCount)
@@ -350,7 +350,7 @@ func TestTrainingSummary(t *testing.T) {
 			"Add more diverse training examples",
 		},
 	}
-	
+
 	assert.Equal(t, 10, summary.TotalIterations)
 	assert.Equal(t, 8, summary.SuccessfulRuns)
 	assert.Equal(t, 2, summary.FailedRuns)
@@ -372,7 +372,7 @@ func TestTrainingSummary(t *testing.T) {
 // TestTrainingStatus 测试训练状态结构
 func TestTrainingStatus(t *testing.T) {
 	startTime := time.Now()
-	
+
 	status := &TrainingStatus{
 		IsRunning:          true,
 		CurrentIteration:   3,
@@ -387,7 +387,7 @@ func TestTrainingStatus(t *testing.T) {
 		Status:             "training in progress",
 		LastError:          "",
 	}
-	
+
 	assert.True(t, status.IsRunning)
 	assert.Equal(t, 3, status.CurrentIteration)
 	assert.Equal(t, 10, status.TotalIterations)
@@ -412,7 +412,7 @@ func TestAgentIterationData(t *testing.T) {
 		Success:       true,
 		Error:         "",
 	}
-	
+
 	assert.Equal(t, "content_writer", agentData.AgentRole)
 	assert.Equal(t, 250*time.Millisecond, agentData.ExecutionTime)
 	assert.Equal(t, 180, agentData.TokensUsed)
@@ -434,7 +434,7 @@ func TestTaskIterationData(t *testing.T) {
 		ValidationScore: 8.7,
 		Error:           "",
 	}
-	
+
 	assert.Equal(t, "Generate a technical blog post about AI", taskData.TaskDescription)
 	assert.Equal(t, 400*time.Millisecond, taskData.ExecutionTime)
 	assert.True(t, taskData.Success)
@@ -457,13 +457,13 @@ func BenchmarkTrainingDataSerialization(b *testing.B) {
 	// 创建测试数据
 	config := DefaultTrainingConfig()
 	data := &TrainingData{
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		Version:   "1.0",
-		Config:    config,
-		SessionID: "bench-test-session",
-		CrewName:  "benchmark-crew",
-		TotalRuns: 10,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+		Version:    "1.0",
+		Config:     config,
+		SessionID:  "bench-test-session",
+		CrewName:   "benchmark-crew",
+		TotalRuns:  10,
 		Iterations: make([]*IterationData, 0, 10),
 		Summary: &TrainingSummary{
 			TotalIterations: 10,
@@ -471,7 +471,7 @@ func BenchmarkTrainingDataSerialization(b *testing.B) {
 			FailedRuns:      2,
 		},
 	}
-	
+
 	// 添加一些迭代数据
 	for i := 0; i < 10; i++ {
 		iteration := &IterationData{
@@ -483,7 +483,7 @@ func BenchmarkTrainingDataSerialization(b *testing.B) {
 		}
 		data.Iterations = append(data.Iterations, iteration)
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// 这里可以测试序列化性能，但需要json包

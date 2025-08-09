@@ -42,7 +42,7 @@ func TestAsyncExecutor_ErrorHandling(t *testing.T) {
 	defer executor.Stop()
 
 	testError := errors.New("test error")
-	
+
 	// 测试错误处理
 	resultChan := executor.ExecuteAsync(context.Background(), func() (interface{}, error) {
 		return nil, testError
@@ -104,7 +104,7 @@ func TestAsyncExecutor_ConcurrentExecution(t *testing.T) {
 			time.Sleep(10 * time.Millisecond)
 			return taskID, nil
 		})
-		
+
 		go func() {
 			result := <-resultChan
 			results <- result
@@ -142,11 +142,11 @@ func TestAsyncExecutor_Stats(t *testing.T) {
 	if stats["max_workers"] != 3 {
 		t.Errorf("expected max_workers to be 3, got %v", stats["max_workers"])
 	}
-	
+
 	if stats["queue_size"] == nil {
 		t.Error("expected queue_size to be present")
 	}
-	
+
 	if stats["active_workers"] == nil {
 		t.Error("expected active_workers to be present")
 	}
@@ -154,23 +154,23 @@ func TestAsyncExecutor_Stats(t *testing.T) {
 
 func TestTaskOutput_Creation(t *testing.T) {
 	output := NewTaskOutput("test raw", "test agent", "test description")
-	
+
 	if output.Raw != "test raw" {
 		t.Errorf("expected 'test raw', got '%s'", output.Raw)
 	}
-	
+
 	if output.Agent != "test agent" {
 		t.Errorf("expected 'test agent', got '%s'", output.Agent)
 	}
-	
+
 	if output.Description != "test description" {
 		t.Errorf("expected 'test description', got '%s'", output.Description)
 	}
-	
+
 	if output.CreatedAt.IsZero() {
 		t.Error("expected CreatedAt to be set")
 	}
-	
+
 	if output.Metadata == nil {
 		t.Error("expected Metadata to be initialized")
 	}

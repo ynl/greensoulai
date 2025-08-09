@@ -23,7 +23,7 @@ GIT_COMMIT ?= $(shell git rev-parse HEAD)
 # Linker flags
 LDFLAGS=-ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)"
 
-.PHONY: all build clean test coverage deps fmt lint help
+.PHONY: all build build-cli clean test coverage deps fmt lint help
 
 # Default target
 all: clean deps fmt lint test build
@@ -33,6 +33,11 @@ build:
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p bin
 	$(GOBUILD) $(LDFLAGS) -o $(BINARY_PATH) $(MAIN_PATH)
+
+# Build CLI tool (alias for build)
+build-cli: build
+	@echo "CLI tool built successfully at $(BINARY_PATH)"
+	@echo "You can now use: $(BINARY_PATH) --help"
 
 # Clean build artifacts
 clean:
@@ -137,6 +142,7 @@ docs:
 help:
 	@echo "Available targets:"
 	@echo "  build     - Build the binary"
+	@echo "  build-cli - Build CLI tool (alias for build)"
 	@echo "  clean     - Clean build artifacts"
 	@echo "  test      - Run tests"
 	@echo "  coverage  - Generate test coverage report"

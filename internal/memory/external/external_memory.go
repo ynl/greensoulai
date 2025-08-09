@@ -3,6 +3,7 @@ package external
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ynl/greensoulai/internal/memory"
@@ -11,10 +12,11 @@ import (
 	"github.com/ynl/greensoulai/pkg/logger"
 )
 
-// ExternalMemory 外部记忆实现
+// ExternalMemory 外部记忆实现（线程安全版本）
 // 用于管理来自外部源的记忆数据
 type ExternalMemory struct {
 	*memory.BaseMemory
+	mu           sync.RWMutex
 	sources      []ExternalSource
 	syncInterval time.Duration
 	lastSyncTime time.Time
@@ -235,8 +237,10 @@ func (em *ExternalMemory) SearchBySourceType(ctx context.Context, sourceType Ext
 	return filteredResults, nil
 }
 
-// EnableAutoSync 启用自动同步
+// EnableAutoSync 启用自动同步（线程安全）
 func (em *ExternalMemory) EnableAutoSync(ctx context.Context, interval time.Duration) {
+	em.mu.Lock()
+	defer em.mu.Unlock()
 	em.autoSync = true
 	em.syncInterval = interval
 
@@ -244,14 +248,20 @@ func (em *ExternalMemory) EnableAutoSync(ctx context.Context, interval time.Dura
 	go em.autoSyncLoop(ctx)
 }
 
-// DisableAutoSync 禁用自动同步
+// DisableAutoSync 禁用自动同步（线程安全）
 func (em *ExternalMemory) DisableAutoSync() {
+	em.mu.Lock()
+	defer em.mu.Unlock()
 	em.autoSync = false
 }
 
-// autoSyncLoop 自动同步循环
+// autoSyncLoop 自动同步循环（线程安全）
 func (em *ExternalMemory) autoSyncLoop(ctx context.Context) {
-	ticker := time.NewTicker(em.syncInterval)
+	em.mu.RLock()
+	syncInterval := em.syncInterval
+	em.mu.RUnlock()
+
+	ticker := time.NewTicker(syncInterval)
 	defer ticker.Stop()
 
 	for {
@@ -259,19 +269,30 @@ func (em *ExternalMemory) autoSyncLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if em.autoSync {
+			// 安全地读取autoSync状态
+			em.mu.RLock()
+			shouldSync := em.autoSync
+			em.mu.RUnlock()
+
+			if shouldSync {
 				err := em.SyncAll(ctx)
 				if err != nil {
 					// 记录错误但继续运行
 					// em.logger.Error("auto sync failed", logger.Field{Key: "error", Value: err})
 				}
+			} else {
+				// 如果自动同步被禁用，退出循环
+				return
 			}
 		}
 	}
 }
 
-// GetSyncStatus 获取同步状态
+// GetSyncStatus 获取同步状态（线程安全）
 func (em *ExternalMemory) GetSyncStatus() map[string]interface{} {
+	em.mu.RLock()
+	defer em.mu.RUnlock()
+
 	status := map[string]interface{}{
 		"auto_sync":         em.autoSync,
 		"sync_interval":     em.syncInterval.String(),
@@ -315,4 +336,3 @@ func (em *ExternalMemory) SetCrew(crew interface{}) memory.Memory {
 	em.BaseMemory.SetCrew(crew)
 	return em
 }
-

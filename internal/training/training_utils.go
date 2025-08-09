@@ -318,4 +318,3 @@ func CreateAdvancedTrainingConfig(iterations int, filename string, inputs map[st
 
 	return config
 }
-

@@ -143,4 +143,3 @@ func NewMemoryQueryFailedEvent(query, errorMsg string) *MemoryQueryFailedEvent {
 		Error: errorMsg,
 	}
 }
-

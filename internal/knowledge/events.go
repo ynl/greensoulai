@@ -161,4 +161,3 @@ func NewKnowledgeStorageResetEvent(collection string) *KnowledgeStorageResetEven
 		Collection: collection,
 	}
 }
-

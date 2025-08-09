@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/ynl/greensoulai/pkg/events"
@@ -36,8 +37,9 @@ type MemoryItem struct {
 	Score     float64                `json:"score,omitempty"`
 }
 
-// BaseMemory 基础记忆实现
+// BaseMemory 基础记忆实现（线程安全版本）
 type BaseMemory struct {
+	mu       sync.RWMutex
 	storage  MemoryStorage
 	crew     interface{}
 	eventBus events.EventBus
@@ -169,8 +171,10 @@ func (m *BaseMemory) Clear(ctx context.Context) error {
 	return nil
 }
 
-// SetCrew 实现Memory接口
+// SetCrew 实现Memory接口（线程安全）
 func (m *BaseMemory) SetCrew(crew interface{}) Memory {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.crew = crew
 	return m
 }

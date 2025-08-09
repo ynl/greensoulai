@@ -22,4 +22,7 @@ examples/complete/simple_kimi_demo
 
 # 测试文件
 *.test
+coverage.out
+coverage.html
+*.prof
 internal/memory/long_term/data/

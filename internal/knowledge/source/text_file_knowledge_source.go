@@ -233,4 +233,3 @@ func (tfs *TextFileKnowledgeSource) GetStats() map[string]interface{} {
 
 	return baseStats
 }
-

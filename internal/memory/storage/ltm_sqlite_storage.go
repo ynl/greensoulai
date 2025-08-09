@@ -140,7 +140,7 @@ func (s *LTMSQLiteStorage) tryCreateFTSTables() {
 func (s *LTMSQLiteStorage) Save(ctx context.Context, item memory.MemoryItem) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	// 序列化元数据
 	metadataJSON, err := json.Marshal(item.Metadata)
 	if err != nil {
@@ -181,7 +181,7 @@ func (s *LTMSQLiteStorage) Save(ctx context.Context, item memory.MemoryItem) err
 func (s *LTMSQLiteStorage) Search(ctx context.Context, query string, limit int, scoreThreshold float64) ([]memory.MemoryItem, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	// 确保总是返回非nil的slice
 	results := make([]memory.MemoryItem, 0)
 
@@ -260,7 +260,7 @@ func (s *LTMSQLiteStorage) Search(ctx context.Context, query string, limit int, 
 func (s *LTMSQLiteStorage) simpleLikeSearch(ctx context.Context, query string, limit int, scoreThreshold float64) ([]memory.MemoryItem, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	results := make([]memory.MemoryItem, 0)
 
 	searchSQL := `
@@ -365,7 +365,7 @@ func (s *LTMSQLiteStorage) Delete(ctx context.Context, id string) error {
 func (s *LTMSQLiteStorage) Clear(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	// 获取删除前的数量
 	var count int
 	countSQL := `SELECT COUNT(*) FROM long_term_memories`
@@ -389,7 +389,7 @@ func (s *LTMSQLiteStorage) Clear(ctx context.Context) error {
 func (s *LTMSQLiteStorage) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	if s.db != nil {
 		s.logger.Info("closing SQLite storage")
 		return s.db.Close()

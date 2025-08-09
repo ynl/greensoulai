@@ -15,7 +15,7 @@ import (
 func TestNewTrainingUtils(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	utils := NewTrainingUtils(testLogger)
-	
+
 	assert.NotNil(t, utils)
 	assert.Equal(t, testLogger, utils.logger)
 }
@@ -24,9 +24,9 @@ func TestCreateTrainingHandler(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	testEventBus := events.NewEventBus(testLogger)
 	utils := NewTrainingUtils(testLogger)
-	
+
 	handler := utils.CreateTrainingHandler(testEventBus, testLogger)
-	
+
 	assert.NotNil(t, handler)
 	assert.Implements(t, (*TrainingHandler)(nil), handler)
 }
@@ -34,7 +34,7 @@ func TestCreateTrainingHandler(t *testing.T) {
 func TestValidateTrainingConfig(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	utils := NewTrainingUtils(testLogger)
-	
+
 	tests := []struct {
 		name        string
 		config      *TrainingConfig
@@ -168,7 +168,7 @@ func TestValidateTrainingConfig(t *testing.T) {
 			expectFix:   true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			originalConfig := tt.config
@@ -177,14 +177,14 @@ func TestValidateTrainingConfig(t *testing.T) {
 				configCopy := *originalConfig
 				originalConfig = &configCopy
 			}
-			
+
 			err := utils.ValidateTrainingConfig(tt.config)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				
+
 				if tt.expectFix && originalConfig != nil {
 					// 验证配置是否被修复
 					assert.NotNil(t, tt.config)
@@ -197,11 +197,11 @@ func TestValidateTrainingConfig(t *testing.T) {
 func TestGenerateTrainingReport(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	utils := NewTrainingUtils(testLogger)
-	
+
 	tests := []struct {
-		name           string
-		data           *TrainingData
-		expectedStatus string
+		name             string
+		data             *TrainingData
+		expectedStatus   string
 		expectedInsights int
 		expectedWarnings int
 	}{
@@ -267,24 +267,24 @@ func TestGenerateTrainingReport(t *testing.T) {
 			expectedWarnings: 2, // 高失败率 + 低反馈分数
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			report := utils.GenerateTrainingReport(tt.data)
-			
+
 			assert.NotNil(t, report)
 			assert.Equal(t, tt.expectedStatus, report.Status)
-			
+
 			if tt.data != nil && len(tt.data.Iterations) > 0 {
 				assert.Equal(t, tt.data.SessionID, report.SessionID)
 				assert.Equal(t, tt.data.CrewName, report.CrewName)
 				assert.Equal(t, len(tt.data.Iterations), report.TotalIterations)
 			}
-			
+
 			if tt.expectedInsights > 0 {
 				assert.Len(t, report.Insights, tt.expectedInsights)
 			}
-			
+
 			if tt.expectedWarnings > 0 {
 				assert.Len(t, report.Warnings, tt.expectedWarnings)
 			}
@@ -294,7 +294,7 @@ func TestGenerateTrainingReport(t *testing.T) {
 
 func TestCreateSimpleTrainingConfig(t *testing.T) {
 	config := CreateSimpleTrainingConfig(15, "simple_test.json")
-	
+
 	assert.NotNil(t, config)
 	assert.Equal(t, 15, config.Iterations)
 	assert.Equal(t, "simple_test.json", config.Filename)
@@ -312,11 +312,11 @@ func TestCreateSimpleTrainingConfig(t *testing.T) {
 	assert.True(t, config.Verbose)
 	assert.True(t, config.AutoSave)
 	assert.Equal(t, 3, config.BackupCount)
-	
+
 	// 验证基本的反馈提示
 	assert.Len(t, config.FeedbackPrompts, 2)
 	assert.Contains(t, config.FeedbackPrompts[0], "rate the quality")
-	
+
 	// 验证目标指标
 	expectedMetrics := []string{"execution_time", "success_rate", "feedback_score"}
 	assert.Equal(t, expectedMetrics, config.TargetMetrics)
@@ -327,19 +327,19 @@ func TestCreateAdvancedTrainingConfig(t *testing.T) {
 		"task": "advanced test task",
 		"goal": "test advanced configuration",
 	}
-	
+
 	config := CreateAdvancedTrainingConfig(20, "advanced_test.json", inputs)
-	
+
 	assert.NotNil(t, config)
 	assert.Equal(t, 20, config.Iterations)
 	assert.Equal(t, "advanced_test.json", config.Filename)
 	assert.Equal(t, inputs, config.Inputs)
-	assert.True(t, config.EarlyStopping)   // 应该启用早停
+	assert.True(t, config.EarlyStopping) // 应该启用早停
 	assert.True(t, config.CollectFeedback)
 	assert.True(t, config.MetricsEnabled)
 	assert.Equal(t, 3*time.Minute, config.FeedbackTimeout) // 更短的超时
 	assert.Equal(t, 3, config.SaveInterval)                // 更频繁的保存
-	
+
 	// 验证高级反馈提示
 	assert.Len(t, config.FeedbackPrompts, 5)
 	assert.Contains(t, config.FeedbackPrompts[0], "overall quality")
@@ -392,20 +392,20 @@ func (m *MockTrainingHandler) StopTraining(ctx context.Context) error {
 func TestRunTrainingSession(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	utils := NewTrainingUtils(testLogger)
-	
+
 	config := CreateSimpleTrainingConfig(3, "test_session.json")
 	config.EarlyStopping = false // 禁用早停以简化测试
-	
+
 	// 这个测试主要验证配置验证功能
 	// Mock期望已移除，因为我们不实际调用training handler的方法
 	err := utils.ValidateTrainingConfig(config)
 	assert.NoError(t, err)
-	
+
 	// 验证配置内容
 	assert.Equal(t, 3, config.Iterations)
 	assert.Equal(t, "test_session.json", config.Filename)
 	assert.False(t, config.EarlyStopping)
-	
+
 	// 注意：未来如果需要测试完整的训练会话流程，需要重构设计
 	t.Log("Configuration validation passed")
 }
@@ -413,24 +413,24 @@ func TestRunTrainingSession(t *testing.T) {
 func TestRunTrainingSessionWithCancellation(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	utils := NewTrainingUtils(testLogger)
-	
+
 	config := CreateSimpleTrainingConfig(10, "cancelled_test.json") // 较多迭代
-	
+
 	// 创建会被取消的上下文
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	// 立即取消上下文
 	cancel()
-	
+
 	executeFunc := func(ctx context.Context, inputs map[string]interface{}) (interface{}, error) {
 		return nil, ctx.Err() // 应该返回取消错误
 	}
-	
+
 	// 创建真实的处理器进行测试
 	handler := utils.CreateTrainingHandler(events.NewEventBus(testLogger), testLogger)
-	
+
 	_, err := utils.RunTrainingSession(ctx, handler, config, executeFunc)
-	
+
 	// 应该因为上下文取消而返回错误
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "context canceled")
@@ -440,7 +440,7 @@ func TestRunTrainingSessionWithCancellation(t *testing.T) {
 func BenchmarkValidateTrainingConfig(b *testing.B) {
 	testLogger := logger.NewConsoleLogger()
 	utils := NewTrainingUtils(testLogger)
-	
+
 	config := &TrainingConfig{
 		Iterations:      10,
 		Filename:        "benchmark.json",
@@ -454,7 +454,7 @@ func BenchmarkValidateTrainingConfig(b *testing.B) {
 		BackupCount:     3,
 		TargetMetrics:   []string{"execution_time", "success_rate"},
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// 每次创建新的配置副本以避免修改
@@ -467,7 +467,7 @@ func BenchmarkValidateTrainingConfig(b *testing.B) {
 func BenchmarkGenerateTrainingReport(b *testing.B) {
 	testLogger := logger.NewConsoleLogger()
 	utils := NewTrainingUtils(testLogger)
-	
+
 	// 创建包含大量迭代的训练数据
 	iterations := make([]*IterationData, 100)
 	for i := 0; i < 100; i++ {
@@ -478,7 +478,7 @@ func BenchmarkGenerateTrainingReport(b *testing.B) {
 			Duration:    time.Duration(100+i) * time.Millisecond,
 		}
 	}
-	
+
 	data := &TrainingData{
 		SessionID:  "benchmark-session",
 		CrewName:   "benchmark-crew",
@@ -494,7 +494,7 @@ func BenchmarkGenerateTrainingReport(b *testing.B) {
 			AverageFeedback: 7.5,
 		},
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		utils.GenerateTrainingReport(data)
@@ -505,7 +505,7 @@ func BenchmarkGenerateTrainingReport(b *testing.B) {
 func TestTrainingUtilsEdgeCases(t *testing.T) {
 	testLogger := logger.NewConsoleLogger()
 	utils := NewTrainingUtils(testLogger)
-	
+
 	// 测试极端配置值
 	extremeConfig := &TrainingConfig{
 		Iterations:      999, // 接近最大值
@@ -517,10 +517,10 @@ func TestTrainingUtilsEdgeCases(t *testing.T) {
 		SaveInterval:    1, // 每次都保存
 		BackupCount:     100,
 	}
-	
+
 	err := utils.ValidateTrainingConfig(extremeConfig)
 	assert.NoError(t, err)
-	
+
 	// 测试空的训练数据报告生成
 	emptyData := &TrainingData{}
 	report := utils.GenerateTrainingReport(emptyData)

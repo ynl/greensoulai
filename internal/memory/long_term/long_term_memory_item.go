@@ -99,4 +99,3 @@ func FromDict(data map[string]interface{}) *LongTermMemoryItem {
 
 	return item
 }
-

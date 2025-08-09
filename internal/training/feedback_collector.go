@@ -347,4 +347,3 @@ func (fc *FeedbackCollector) ValidateFeedback(feedback *HumanFeedback) error {
 
 	return nil
 }
-
