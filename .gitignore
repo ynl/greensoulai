@@ -15,3 +15,11 @@ examples/complete/simple_kimi_demo
 
 # macOS
 .DS_Store
+
+# 备份文件
+*.backup_*
+*.backup
+
+# 测试文件
+*.test
+internal/memory/long_term/data/
