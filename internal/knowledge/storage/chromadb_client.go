@@ -460,11 +460,11 @@ func sanitizeCollectionName(name string) string {
 	if len(cleaned) > 0 && (cleaned[0] == '-' || cleaned[0] == '_') {
 		cleaned = "c" + cleaned
 	}
-	
+
 	// 处理结尾的连字符和下划线
 	originalLength := len(cleaned)
 	cleaned = strings.TrimRight(cleaned, "-_")
-	
+
 	// 如果移除了结尾的字符，加上'c'
 	if len(cleaned) < originalLength {
 		cleaned = cleaned + "c"

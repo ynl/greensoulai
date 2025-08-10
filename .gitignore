@@ -1,6 +1,7 @@
 # 编译产物
 *.exe
 main
+knowledge
 examples/complete/ai_research_assistant
 examples/complete/quick_start
 examples/complete/simple_kimi_demo
@@ -25,4 +26,16 @@ examples/complete/simple_kimi_demo
 coverage.out
 coverage.html
 *.prof
+
+# 数据库文件
+*.sqlite
+*.sqlite3
+*.db
+
+# 测试生成的数据文件
 internal/memory/long_term/data/
+internal/memory/long_term/test-path
+internal/memory/long_term/advanced-path
+internal/memory/long_term/thread-safe-collection*
+internal/training/*_test.json
+internal/training/training_data.json

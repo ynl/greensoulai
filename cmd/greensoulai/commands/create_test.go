@@ -21,7 +21,7 @@ func setupTestProject(dir string) error {
 		"internal/tasks",
 		"internal/tools",
 	}
-	
+
 	for _, d := range dirs {
 		if err := os.MkdirAll(filepath.Join(dir, d), 0755); err != nil {
 			return err
@@ -151,7 +151,7 @@ func TestCreateCrewCommand(t *testing.T) {
 			// 创建独立的logger和命令
 			testLog := logger.NewTestLogger()
 			testCreateCmd := NewCreateCommand(testLog)
-			
+
 			// 查找crew子命令
 			var testCrewCmd *cobra.Command
 			for _, cmd := range testCreateCmd.Commands() {
@@ -536,7 +536,7 @@ llm:
 			// 创建独立的logger和命令
 			testLog := logger.NewTestLogger()
 			testCreateCmd := NewCreateCommand(testLog)
-			
+
 			// 查找task子命令
 			var testTaskCmd *cobra.Command
 			for _, cmd := range testCreateCmd.Commands() {

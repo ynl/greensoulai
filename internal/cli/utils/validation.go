@@ -351,19 +351,19 @@ func isPascalCase(s string) bool {
 	if len(s) == 0 {
 		return false
 	}
-	
+
 	// 必须以大写字母开头
 	if !unicode.IsUpper(rune(s[0])) {
 		return false
 	}
-	
+
 	// 只能包含字母和数字，且无分隔符
 	for _, r := range s {
 		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
 			return false
 		}
 	}
-	
+
 	// 检查是否符合帕斯卡命名法的模式：大写字母后跟小写字母或数字
 	inWord := false
 	for i, r := range s {
@@ -371,7 +371,7 @@ func isPascalCase(s string) bool {
 			inWord = true
 			continue
 		}
-		
+
 		if unicode.IsUpper(r) {
 			// 新单词开始
 			inWord = true
@@ -383,7 +383,7 @@ func isPascalCase(s string) bool {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -411,19 +411,19 @@ func isCamelCase(s string) bool {
 	if len(s) == 0 {
 		return false
 	}
-	
+
 	// 必须以小写字母开头
 	if !unicode.IsLower(rune(s[0])) {
 		return false
 	}
-	
+
 	// 只能包含字母和数字，且单词间无分隔符
 	for _, r := range s {
 		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
