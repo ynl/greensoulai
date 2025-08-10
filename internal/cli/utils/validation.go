@@ -99,6 +99,25 @@ func SanitizeName(name string) string {
 	// 移除开头和结尾的空格
 	name = strings.TrimSpace(name)
 
+	// 如果全是特殊字符，返回默认名称
+	hasValidChar := false
+	for _, r := range name {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			hasValidChar = true
+			break
+		}
+	}
+	if !hasValidChar {
+		return "project"
+	}
+
+	// 移除所有前导数字
+	removedLeadingDigit := false
+	for len(name) > 0 && unicode.IsDigit(rune(name[0])) {
+		name = name[1:]
+		removedLeadingDigit = true
+	}
+
 	// 替换空格和特殊字符为下划线
 	var result strings.Builder
 	var lastWasUnderscore bool
@@ -119,13 +138,14 @@ func SanitizeName(name string) string {
 	if len(sanitized) > 0 {
 		firstRune := rune(sanitized[0])
 		if !unicode.IsLetter(firstRune) {
-			if unicode.IsDigit(firstRune) {
-				sanitized = "A" + sanitized
-			} else {
-				// 如果首字符是下划线或其他，直接替换为A
-				sanitized = "A" + sanitized[1:]
-			}
+			// 如果首字符不是字母，添加A前缀
+			sanitized = "A" + sanitized
 		}
+	}
+
+	// 如果移除了前导数字且有有效内容，添加A前缀
+	if removedLeadingDigit && len(sanitized) > 0 {
+		sanitized = "A" + sanitized
 	}
 
 	// 移除结尾的下划线
@@ -229,18 +249,21 @@ func sanitizeForGoModule(name string) string {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) {
 			result.WriteRune(r)
 			lastWasDash = false
-		} else if (r == '-' || r == '_') && !lastWasDash {
-			result.WriteRune('-') // 统一使用连字符
+		} else if r == '-' && !lastWasDash {
+			result.WriteRune('-') // 连字符保持不变
+			lastWasDash = true
+		} else if r == '_' && !lastWasDash {
+			result.WriteRune('_') // 下划线保持不变
 			lastWasDash = true
 		} else if !lastWasDash && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-			// 其他特殊字符替换为连字符
-			result.WriteRune('-')
+			// 其他特殊字符替换为下划线
+			result.WriteRune('_')
 			lastWasDash = true
 		}
 	}
 
-	// 移除开头和结尾的连字符
-	sanitized := strings.Trim(result.String(), "-")
+	// 移除开头和结尾的连字符和下划线
+	sanitized := strings.Trim(result.String(), "-_")
 
 	// 如果结果为空，使用默认名称
 	if sanitized == "" {
@@ -302,6 +325,11 @@ func ToPascalCase(s string) string {
 		return s
 	}
 
+	// 检查是否已经是帕斯卡命名法
+	if isPascalCase(s) {
+		return s
+	}
+
 	// 分割字符串
 	parts := regexp.MustCompile(`[^a-zA-Z0-9]+`).Split(s, -1)
 
@@ -318,8 +346,58 @@ func ToPascalCase(s string) string {
 	return result.String()
 }
 
+// isPascalCase 检查字符串是否已经是帕斯卡命名法
+func isPascalCase(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	
+	// 必须以大写字母开头
+	if !unicode.IsUpper(rune(s[0])) {
+		return false
+	}
+	
+	// 只能包含字母和数字，且无分隔符
+	for _, r := range s {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			return false
+		}
+	}
+	
+	// 检查是否符合帕斯卡命名法的模式：大写字母后跟小写字母或数字
+	inWord := false
+	for i, r := range s {
+		if i == 0 && unicode.IsUpper(r) {
+			inWord = true
+			continue
+		}
+		
+		if unicode.IsUpper(r) {
+			// 新单词开始
+			inWord = true
+		} else if inWord && (unicode.IsLower(r) || unicode.IsDigit(r)) {
+			// 在单词中
+			continue
+		} else {
+			// 不符合模式
+			return false
+		}
+	}
+	
+	return true
+}
+
 // ToCamelCase 转换为驼峰命名法
 func ToCamelCase(s string) string {
+	if s == "" {
+		return s
+	}
+
+	// 检查是否已经是驼峰命名法
+	if isCamelCase(s) {
+		return s
+	}
+
 	pascal := ToPascalCase(s)
 	if len(pascal) == 0 {
 		return pascal
@@ -328,14 +406,38 @@ func ToCamelCase(s string) string {
 	return strings.ToLower(pascal[:1]) + pascal[1:]
 }
 
+// isCamelCase 检查字符串是否已经是驼峰命名法
+func isCamelCase(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	
+	// 必须以小写字母开头
+	if !unicode.IsLower(rune(s[0])) {
+		return false
+	}
+	
+	// 只能包含字母和数字，且单词间无分隔符
+	for _, r := range s {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			return false
+		}
+	}
+	
+	return true
+}
+
 // ToSnakeCase 转换为蛇形命名法
 func ToSnakeCase(s string) string {
 	if s == "" {
 		return s
 	}
 
-	// 在大写字母前插入下划线
-	snake := regexp.MustCompile(`([a-z0-9])([A-Z])`).ReplaceAllString(s, "${1}_${2}")
+	// 处理连续大写字母的情况，如XMLHttpRequest -> XML_Http_Request
+	snake := regexp.MustCompile(`([A-Z]+)([A-Z][a-z])`).ReplaceAllString(s, "${1}_${2}")
+
+	// 在小写字母和大写字母间插入下划线
+	snake = regexp.MustCompile(`([a-z0-9])([A-Z])`).ReplaceAllString(snake, "${1}_${2}")
 
 	// 替换空格和特殊字符为下划线
 	snake = regexp.MustCompile(`[^a-zA-Z0-9]+`).ReplaceAllString(snake, "_")

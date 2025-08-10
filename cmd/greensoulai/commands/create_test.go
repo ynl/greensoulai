@@ -9,8 +9,44 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/ynl/greensoulai/internal/cli/utils"
 	"github.com/ynl/greensoulai/pkg/logger"
 )
+
+// setupTestProject 创建一个基础的greensoulai项目用于测试
+func setupTestProject(dir string) error {
+	// 创建基本的项目结构
+	dirs := []string{
+		"internal/agents",
+		"internal/tasks",
+		"internal/tools",
+	}
+	
+	for _, d := range dirs {
+		if err := os.MkdirAll(filepath.Join(dir, d), 0755); err != nil {
+			return err
+		}
+	}
+
+	// 创建greensoulai.yaml配置文件
+	configContent := `name: test-project
+type: crew
+go_module: github.com/test/project
+go_version: "1.21"
+agents:
+  - name: researcher
+    role: Research Specialist
+    goal: Conduct thorough research
+    backstory: Expert researcher with years of experience
+tasks: []
+tools: []
+llm:
+  provider: openai
+  model: gpt-4o-mini
+`
+
+	return os.WriteFile(filepath.Join(dir, "greensoulai.yaml"), []byte(configContent), 0644)
+}
 
 func TestNewCreateCommand(t *testing.T) {
 	log := logger.NewTestLogger()
@@ -103,15 +139,41 @@ func TestCreateCrewCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// 为每个测试创建独立的临时目录
+			testTmpDir := t.TempDir()
+			originalTestDir, _ := os.Getwd()
+			defer os.Chdir(originalTestDir)
+
+			if err := os.Chdir(testTmpDir); err != nil {
+				t.Fatalf("Failed to change to test temp directory: %v", err)
+			}
+
+			// 创建独立的logger和命令
+			testLog := logger.NewTestLogger()
+			testCreateCmd := NewCreateCommand(testLog)
+			
+			// 查找crew子命令
+			var testCrewCmd *cobra.Command
+			for _, cmd := range testCreateCmd.Commands() {
+				if cmd.Use == "crew [name]" {
+					testCrewCmd = cmd
+					break
+				}
+			}
+
+			if testCrewCmd == nil {
+				t.Fatal("crew subcommand not found")
+			}
+
 			// 创建命令副本
 			testCmd := &cobra.Command{
-				Use:  crewCmd.Use,
-				Args: crewCmd.Args,
-				RunE: crewCmd.RunE,
+				Use:  testCrewCmd.Use,
+				Args: testCrewCmd.Args,
+				RunE: testCrewCmd.RunE,
 			}
 
 			// 复制flags
-			testCmd.Flags().AddFlagSet(crewCmd.Flags())
+			testCmd.Flags().AddFlagSet(testCrewCmd.Flags())
 
 			// 设置flags
 			for flag, value := range tt.flags {
@@ -146,7 +208,8 @@ func TestCreateCrewCommand(t *testing.T) {
 
 			// 如果没有错误，检查项目是否创建成功
 			if !tt.expectError && err == nil && len(tt.args) > 0 {
-				projectDir := tt.args[0]
+				projectName := tt.args[0]
+				projectDir := utils.NormalizeName(projectName)
 				if tt.flags["output"] != "" {
 					projectDir = tt.flags["output"]
 				}
@@ -456,12 +519,43 @@ llm:
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			testCmd := &cobra.Command{
-				Use:  taskCmd.Use,
-				Args: taskCmd.Args,
-				RunE: taskCmd.RunE,
+			// 为每个测试创建独立的临时目录
+			testTmpDir := t.TempDir()
+			originalTestDir, _ := os.Getwd()
+			defer os.Chdir(originalTestDir)
+
+			if err := os.Chdir(testTmpDir); err != nil {
+				t.Fatalf("Failed to change to test temp directory: %v", err)
 			}
-			testCmd.Flags().AddFlagSet(taskCmd.Flags())
+
+			// 为了测试task创建，需要先创建一个基础项目
+			if err := setupTestProject(testTmpDir); err != nil {
+				t.Fatalf("Failed to setup test project: %v", err)
+			}
+
+			// 创建独立的logger和命令
+			testLog := logger.NewTestLogger()
+			testCreateCmd := NewCreateCommand(testLog)
+			
+			// 查找task子命令
+			var testTaskCmd *cobra.Command
+			for _, cmd := range testCreateCmd.Commands() {
+				if cmd.Use == "task [name]" {
+					testTaskCmd = cmd
+					break
+				}
+			}
+
+			if testTaskCmd == nil {
+				t.Fatal("task subcommand not found")
+			}
+
+			testCmd := &cobra.Command{
+				Use:  testTaskCmd.Use,
+				Args: testTaskCmd.Args,
+				RunE: testTaskCmd.RunE,
+			}
+			testCmd.Flags().AddFlagSet(testTaskCmd.Flags())
 
 			// 设置flags
 			for flag, value := range tt.flags {
