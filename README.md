@@ -464,7 +464,7 @@ GreenSoul AI 采用 MIT 许可证，详见 [LICENSE](LICENSE) 文件。
 
 - **GitHub Issues**: [问题和建议](https://github.com/ynl/greensoulai/issues)
 - **Discussions**: [社区讨论](https://github.com/ynl/greensoulai/discussions)
-- **Email**: greensoulai@example.com
+- **Email**: yilin01@icloud.com
 
 ---
 
