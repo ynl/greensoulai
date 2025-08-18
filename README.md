@@ -35,6 +35,7 @@ GreenSoul AI 是一个用 Go 语言构建的多智能体协作框架，灵感来
 
 ### 当前已实现
 - 🤖 **智能体系统** - 基础的 Agent 接口和实现框架
+- 🧠 **ReAct推理模式** - 结构化推理(Thought→Action→Observation→Final Answer)
 - 👥 **团队协作** - Crew 管理和任务分配机制
 - 📋 **任务执行** - 灵活的任务定义和执行引擎
 - 🔄 **工作流编排** - 并行作业调度和状态管理
@@ -268,6 +269,107 @@ func main() {
 }
 ```
 
+### ReAct推理模式
+
+GreenSoul AI 支持 ReAct(Reasoning and Acting) 推理模式，让 AI 的思考过程完全可见：
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    
+    "github.com/ynl/greensoulai/internal/agent"
+    "github.com/ynl/greensoulai/internal/llm"
+    "github.com/ynl/greensoulai/pkg/events"
+    "github.com/ynl/greensoulai/pkg/logger"
+)
+
+func main() {
+    // 创建支持ReAct模式的智能体
+    analyst := agent.NewBaseAgent(
+        agent.AgentConfig{
+            Role:      "数据分析师",
+            Goal:      "进行深度数据分析和洞察发现",
+            Backstory: "你是一位经验丰富的数据科学家，擅长复杂推理和分析",
+            LLM:       llmProvider,
+            EventBus:  eventBus,
+            Logger:    logger,
+            ExecutionConfig: agent.ExecutionConfig{
+                Mode: agent.ModeReAct,  // 启用ReAct模式
+                ReActConfig: &agent.ReActConfig{
+                    MaxIterations:       10,
+                    EnableDebugOutput:   true,
+                    AllowFallbackToJSON: true,
+                },
+            },
+        },
+    )
+    
+    // 添加数据分析工具
+    calculator := agent.NewCalculatorTool()
+    analyst.AddTool(calculator)
+    
+    // 执行复杂分析任务
+    task := agent.NewTask(
+        "分析公司Q4销售数据趋势",
+        "基于提供的数据进行深度分析，识别关键趋势和改进建议",
+    )
+    
+    ctx := context.Background()
+    
+    // 使用ReAct模式执行，获取详细推理轨迹
+    output, trace, err := analyst.ExecuteWithReAct(ctx, task)
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    // 查看完整的推理过程
+    fmt.Printf("🎯 最终结果: %s\n\n", output.Raw)
+    
+    fmt.Println("🧠 推理轨迹:")
+    for i, step := range trace.Steps {
+        fmt.Printf("\n📍 步骤 %d:\n", i+1)
+        fmt.Printf("💭 思考: %s\n", step.Thought)
+        
+        if step.Action != "" {
+            fmt.Printf("⚡ 动作: %s\n", step.Action)
+            fmt.Printf("📥 输入: %v\n", step.ActionInput)
+            fmt.Printf("👀 观察: %s\n", step.Observation)
+        }
+        
+        if step.FinalAnswer != "" {
+            fmt.Printf("✅ 最终答案: %s\n", step.FinalAnswer)
+        }
+    }
+    
+    // 推理统计
+    fmt.Printf("\n📊 推理统计:\n")
+    fmt.Printf("- 总步骤数: %d\n", trace.IterationCount)
+    fmt.Printf("- 总耗时: %v\n", trace.TotalDuration)
+    fmt.Printf("- 完成状态: %v\n", trace.IsCompleted)
+}
+```
+
+#### ReAct模式特性
+
+- **🔍 完全可解释**: 每一步推理过程都清晰可见
+- **🔧 智能工具使用**: AI自主选择和使用合适的工具
+- **🔄 自适应推理**: 根据观察结果动态调整推理策略
+- **⚡ 高性能实现**: Go原生性能，比Python实现快2-3倍
+- **🛡️ 容错机制**: 解析失败自动降级到JSON模式
+
+#### 使用场景
+
+- **复杂分析任务**: 需要多步推理的数据分析、市场研究等
+- **调试和开发**: 详细了解AI的决策过程
+- **审计要求**: 需要推理过程可追溯的企业应用
+- **教学演示**: 展示AI推理过程的教育场景
+
+> 📖 完整指南请参考: [examples/react/README.md](examples/react/README.md)
+
 提示：也可直接运行并行工作流示例 `examples/workflow/simple_usage.go`，快速体验 Job/Trigger 的并行编排与性能指标。
 
 ## 🎯 完整示例
@@ -290,6 +392,21 @@ go run quick_start.go
 - ✅ 使用真实的 OpenAI API
 - ✅ Agent 智能使用工具
 - ✅ 完整的对话和推理过程
+
+### 🧠 ReAct推理模式演示
+
+```bash
+# 体验ReAct推理模式
+cd examples/react
+go run react_example.go
+```
+
+这个专门的ReAct示例展示：
+- ✅ **结构化推理过程**: Thought → Action → Observation → Final Answer
+- ✅ **推理轨迹可视化**: 每一步思考过程完全透明
+- ✅ **智能工具集成**: AI自主选择和使用计算工具
+- ✅ **模式动态切换**: JSON模式与ReAct模式无缝切换
+- ✅ **完整配置管理**: 生产级的配置选项和错误处理
 
 ### 🏢 完整的 AI 研究助手
 
@@ -379,6 +496,10 @@ greensoulai/
 │   ├── logger/           # 日志系统
 │   └── flow/             # 工作流引擎
 ├── examples/              # 示例代码
+│   ├── complete/          # 完整端到端示例
+│   ├── garden/            # Garden多智能体协作演示
+│   ├── react/             # ReAct推理模式示例
+│   └── workflow/          # 并行工作流示例
 └── docs/                  # 文档
 ```
 
@@ -391,6 +512,7 @@ greensoulai/
 - [x] 事件驱动架构
 - [x] OpenAI 集成
 - [x] 完整的任务执行流程
+- [x] ReAct推理模式支持
 - [ ] 基础工具系统
 - [ ] 简单的记忆管理
 
@@ -447,6 +569,7 @@ make build
 - [API 文档](docs/api-reference.md) - 完整的 API 参考
 - [架构设计](docs/WORKFLOW_ARCHITECTURE.md) - 系统架构说明
 - [示例代码](examples/) - 各种使用场景的示例
+- [ReAct推理模式指南](examples/react/README.md) - ReAct模式详细使用说明
 - [最终工作流设计说明](docs/FINAL_FLOW_DESIGN.md) - 命名/接口/并行指标的最终版说明
 - [项目结构与最佳实践](docs/PROJECT_STRUCTURE.md) - 目录布局与依赖方向
 
