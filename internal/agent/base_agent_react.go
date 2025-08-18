@@ -168,62 +168,6 @@ func (a *BaseAgent) ExecuteWithReAct(ctx context.Context, task Task) (*TaskOutpu
 	return output, trace, nil
 }
 
-// 扩展原有的Execute方法以支持ReAct模式
-func (a *BaseAgent) executeWithMode(ctx context.Context, task Task) (*TaskOutput, error) {
-	// 检查执行模式
-	if a.executionConfig.Mode == ModeReAct {
-		output, _, err := a.ExecuteWithReAct(ctx, task)
-		return output, err
-	}
-
-	// 原有的JSON模式执行逻辑保持不变
-	return a.executeOriginal(ctx, task)
-}
-
-// executeOriginal 保留原有的执行逻辑
-func (a *BaseAgent) executeOriginal(ctx context.Context, task Task) (*TaskOutput, error) {
-	// 原有的Execute方法逻辑
-	// 这里应该是原来的Execute方法的实现
-	// 为了不破坏现有系统，我们保持原有逻辑不变
-
-	if !a.isInitialized {
-		if err := a.Initialize(); err != nil {
-			return nil, fmt.Errorf("failed to initialize agent: %w", err)
-		}
-	}
-
-	// ... 原有的执行逻辑 ...
-	// 这里应该调用原有的实现，但为了演示，我们提供一个基本实现
-
-	// 1. 创建工具执行上下文
-	toolCtx := NewToolExecutionContext(a, task)
-
-	// 2. 构建任务提示
-	prompt, err := a.buildTaskPromptWithTools(ctx, task, toolCtx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build task prompt: %w", err)
-	}
-
-	// 3. 准备LLM消息
-	messages := a.buildMessages(prompt)
-
-	// 4. 调用LLM
-	response, err := a.llmProvider.Call(ctx, messages, a.buildLLMCallOptionsWithTools(toolCtx))
-	if err != nil {
-		return nil, fmt.Errorf("LLM call failed: %w", err)
-	}
-
-	// 5. 构建输出
-	output := a.buildTaskOutput(task, response)
-
-	// 6. 执行回调
-	if err := a.executeCallbacks(ctx, output); err != nil {
-		a.logger.Warn("Callback execution failed", logger.Field{Key: "error", Value: err})
-	}
-
-	return output, nil
-}
-
 // 辅助方法
 
 // generateSummaryFromTrace 从ReAct轨迹生成摘要
