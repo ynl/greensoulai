@@ -47,6 +47,11 @@ type BaseAgent struct {
 	// 新增Python版本对标功能
 	reasoningHandler ReasoningHandler // 推理处理器
 
+	// ReAct模式支持
+	reactParser    ReActParser   // ReAct解析器
+	reactExecutor  ReActExecutor // ReAct执行器
+	lastReActTrace *ReActTrace   // 最近的ReAct轨迹
+
 	// 统计和状态
 	stats         ExecutionStats
 	isInitialized bool
@@ -103,6 +108,11 @@ func NewBaseAgent(config AgentConfig) (*BaseAgent, error) {
 		promptTemplate:    config.PromptTemplate,
 		callbacks:         config.Callbacks,
 		stepCallback:      config.StepCallback, // 新增步骤回调
+
+		// 初始化ReAct组件
+		reactParser:   NewStandardReActParser(),
+		reactExecutor: NewStandardReActExecutor(),
+
 		stats: ExecutionStats{
 			TotalExecutions:      0,
 			SuccessfulExecutions: 0,

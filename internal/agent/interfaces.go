@@ -174,6 +174,10 @@ type ExecutionConfig struct {
 	EnableReasoning    bool    `json:"enable_reasoning"` // 对标Python的reasoning
 	Verbose            bool    `json:"verbose"`          // 对标Python的verbose
 	FunctionCallingLLM llm.LLM `json:"-"`                // 对标Python的function_calling_llm
+
+	// ReAct模式支持
+	Mode        AgentMode    `json:"mode"`         // Agent执行模式
+	ReActConfig *ReActConfig `json:"react_config"` // ReAct模式配置
 }
 
 // TaskOutput 代表任务执行的输出
@@ -337,6 +341,7 @@ func DefaultExecutionConfig() ExecutionConfig {
 		Temperature:      0.7,
 		CacheEnabled:     true,
 		MaxRetryLimit:    3,
+		Mode:             ModeJSON, // 默认使用JSON模式以保持向后兼容
 	}
 }
 
