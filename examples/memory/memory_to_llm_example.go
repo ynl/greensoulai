@@ -14,7 +14,7 @@ import (
 
 // 演示记忆如何传递给LLM的完整流程
 func main() {
-	fmt.Println("=== 记忆到LLM数据传递流程演示 ===\n")
+	fmt.Println("=== 记忆到LLM数据传递流程演示 ===")
 
 	// 1. 初始化基础设施
 	ctx := context.Background()
@@ -25,7 +25,11 @@ func main() {
 	memConfig := crew.DefaultMemoryManagerConfig()
 	memConfig.StoragePath = "examples/memory/data"
 	memoryManager := crew.NewMemoryManager(nil, memConfig, eventBus, logger)
-	defer memoryManager.Close()
+	defer func() {
+		if err := memoryManager.Close(); err != nil {
+			log.Printf("Failed to close memory manager: %v", err)
+		}
+	}()
 
 	fmt.Println("📊 步骤1：存储结构化记忆数据")
 	fmt.Println("----------------------------------------")

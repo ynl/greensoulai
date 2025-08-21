@@ -182,17 +182,3 @@ func (m *Mem0Storage) TestConnection(ctx context.Context) error {
 
 	return fmt.Errorf("Mem0 connection test not implemented - install mem0ai package and implement API calls")
 }
-
-// 辅助函数：将Mem0响应转换为memory.MemoryItem
-func (m *Mem0Storage) convertMem0Response(response interface{}) ([]memory.MemoryItem, error) {
-	// TODO: 实现响应转换逻辑
-	// 这里需要根据Mem0 API的实际响应格式来实现转换
-	return nil, fmt.Errorf("Mem0 response conversion not implemented")
-}
-
-// 辅助函数：将memory.MemoryItem转换为Mem0请求格式
-func (m *Mem0Storage) convertToMem0Format(item memory.MemoryItem) (map[string]interface{}, error) {
-	// TODO: 实现请求格式转换
-	// 这里需要根据Mem0 API的要求格式来转换
-	return nil, fmt.Errorf("Mem0 format conversion not implemented")
-}

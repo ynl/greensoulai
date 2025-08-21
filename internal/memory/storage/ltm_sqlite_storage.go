@@ -319,23 +319,6 @@ func (s *LTMSQLiteStorage) simpleLikeSearch(ctx context.Context, query string, l
 	return results, nil
 }
 
-// updateAccessStats 更新访问统计
-func (s *LTMSQLiteStorage) updateAccessStats(ctx context.Context, id string) {
-	updateSQL := `
-	UPDATE long_term_memories 
-	SET access_count = access_count + 1, last_access = CURRENT_TIMESTAMP
-	WHERE id = ?
-	`
-
-	_, err := s.db.ExecContext(ctx, updateSQL, id)
-	if err != nil {
-		s.logger.Error("failed to update access stats",
-			logger.Field{Key: "id", Value: id},
-			logger.Field{Key: "error", Value: err},
-		)
-	}
-}
-
 // Delete 删除记忆项
 func (s *LTMSQLiteStorage) Delete(ctx context.Context, id string) error {
 	deleteSQL := `DELETE FROM long_term_memories WHERE id = ?`

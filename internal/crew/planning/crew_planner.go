@@ -62,7 +62,10 @@ func (cp *CrewPlannerImpl) HandleCrewPlanning(ctx context.Context) (*PlannerTask
 	// 发射规划开始事件
 	if cp.eventBus != nil {
 		event := NewPlanningStartedEvent(len(cp.tasks), cp.config.PlanningAgentLLM, cp.config)
-		cp.eventBus.Emit(ctx, cp, event)
+		if err := cp.eventBus.Emit(ctx, cp, event); err != nil {
+			cp.logger.Error("Failed to emit planning started event",
+				logger.Field{Key: "error", Value: err})
+		}
 	}
 
 	cp.logger.Info("Starting crew planning",
@@ -110,7 +113,10 @@ func (cp *CrewPlannerImpl) HandleCrewPlanning(ctx context.Context) (*PlannerTask
 	if cp.eventBus != nil {
 		event := NewPlanningCompletedEvent(len(cp.tasks), result.GetTaskCount(), executionTime, true)
 		event.Result = result
-		cp.eventBus.Emit(ctx, cp, event)
+		if err := cp.eventBus.Emit(ctx, cp, event); err != nil {
+			cp.logger.Error("Failed to emit planning completed event",
+				logger.Field{Key: "error", Value: err})
+		}
 	}
 
 	cp.logger.Info("Crew planning completed successfully",
@@ -173,7 +179,10 @@ func (cp *CrewPlannerImpl) createPlanningAgent(ctx context.Context) (Agent, erro
 			agentConfig.LLM,
 			creationTime,
 		)
-		cp.eventBus.Emit(ctx, cp, event)
+		if err := cp.eventBus.Emit(ctx, cp, event); err != nil {
+			cp.logger.Error("Failed to emit planning agent created event",
+				logger.Field{Key: "error", Value: err})
+		}
 	}
 
 	cp.logger.Debug("Planning agent created",
@@ -231,7 +240,10 @@ Return the result in JSON format with the following structure:
 			planningAgent.ID(),
 			creationTime,
 		)
-		cp.eventBus.Emit(ctx, cp, event)
+		if err := cp.eventBus.Emit(ctx, cp, event); err != nil {
+			cp.logger.Error("Failed to emit planning task created event",
+				logger.Field{Key: "error", Value: err})
+		}
 	}
 
 	cp.logger.Debug("Planner task created",
@@ -314,7 +326,10 @@ func (cp *CrewPlannerImpl) handlePlanningError(ctx context.Context, phase string
 			phase,
 			executionTime,
 		)
-		cp.eventBus.Emit(ctx, cp, event)
+		if emitErr := cp.eventBus.Emit(ctx, cp, event); emitErr != nil {
+			cp.logger.Error("Failed to emit planning failed event",
+				logger.Field{Key: "error", Value: emitErr})
+		}
 	}
 
 	cp.logger.Error("Planning failed",

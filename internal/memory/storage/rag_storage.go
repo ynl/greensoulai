@@ -246,24 +246,6 @@ func (rs *RAGStorage) sortByScore(items []memory.MemoryItem) {
 	}
 }
 
-// buildIndex 构建向量索引（预留接口）
-func (rs *RAGStorage) buildIndex() error {
-	if rs.indexBuilt {
-		return nil
-	}
-
-	rs.logger.Info("building vector index for RAG storage",
-		logger.Field{Key: "items_count", Value: len(rs.items)},
-		logger.Field{Key: "type", Value: rs.storageType},
-	)
-
-	// TODO: 实现真正的向量索引构建
-	// 这里应该使用如Faiss、Chroma等向量数据库
-
-	rs.indexBuilt = true
-	return nil
-}
-
 // GetStats 获取存储统计信息
 func (rs *RAGStorage) GetStats() map[string]interface{} {
 	rs.mu.RLock()

@@ -573,12 +573,3 @@ func createTestAgent(role, goal string, mockLLM llm.LLM, eventBus events.EventBu
 
 	return ag, ag.Initialize()
 }
-
-// 辅助函数：获取map的所有键
-func getMapKeys(m map[string]interface{}) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
-}

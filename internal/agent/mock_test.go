@@ -83,12 +83,11 @@ func (m *MockLLM) ResetCallCount() {
 
 // ExtendedMockLLM 扩展的模拟LLM，支持多个响应、提示捕获等高级功能
 type ExtendedMockLLM struct {
-	responses     []llm.Response
-	currentIndex  int
-	capturePrompt bool
-	onCall        func([]llm.Message)
-	shouldFail    bool
-	callCount     int
+	responses    []llm.Response
+	currentIndex int
+	onCall       func([]llm.Message)
+	shouldFail   bool
+	callCount    int
 }
 
 // NewExtendedMockLLM 创建扩展模拟LLM
@@ -445,18 +444,6 @@ func createStandardMockResponse(content string) *llm.Response {
 			CompletionTokens: 5,
 			TotalTokens:      10,
 			Cost:             0.01,
-		},
-	}
-}
-
-// createErrorMockResponse 创建错误Mock响应
-func createErrorMockResponse(content string) *llm.Response {
-	return &llm.Response{
-		Content:      content,
-		Model:        "mock-model",
-		FinishReason: "error",
-		Usage: llm.Usage{
-			TotalTokens: 5,
 		},
 	}
 }

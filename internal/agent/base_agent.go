@@ -201,7 +201,10 @@ func (a *BaseAgent) Execute(ctx context.Context, task Task) (*TaskOutput, error)
 			task.GetDescription(),
 			executionID,
 		)
-		a.eventBus.Emit(ctx, a, startEvent)
+		if err := a.eventBus.Emit(ctx, a, startEvent); err != nil {
+			a.logger.Error("Failed to emit agent execution started event",
+				logger.Field{Key: "error", Value: err})
+		}
 	}
 
 	a.logger.Info("Starting task execution",
@@ -236,7 +239,10 @@ func (a *BaseAgent) Execute(ctx context.Context, task Task) (*TaskOutput, error)
 			err == nil,
 			output,
 		)
-		a.eventBus.Emit(ctx, a, completedEvent)
+		if emitErr := a.eventBus.Emit(ctx, a, completedEvent); emitErr != nil {
+			a.logger.Error("Failed to emit agent execution completed event",
+				logger.Field{Key: "error", Value: emitErr})
+		}
 	}
 
 	if err != nil {
@@ -355,12 +361,6 @@ func (a *BaseAgent) executeCore(ctx context.Context, task Task) (*TaskOutput, er
 	return output, nil
 }
 
-// buildTaskPrompt 构建任务提示（向后兼容）
-func (a *BaseAgent) buildTaskPrompt(ctx context.Context, task Task) (string, error) {
-	toolCtx := NewToolExecutionContext(a, task)
-	return a.buildTaskPromptWithTools(ctx, task, toolCtx)
-}
-
 // buildTaskPromptWithTools 构建包含工具信息的任务提示
 func (a *BaseAgent) buildTaskPromptWithTools(ctx context.Context, task Task, toolCtx *ToolExecutionContext) (string, error) {
 	prompt := task.GetDescription()
@@ -455,22 +455,6 @@ Your backstory: %s
 
 You are working with a team of other agents to complete complex tasks. Always provide detailed, accurate responses based on your role and expertise. Use the available tools when necessary and be precise in your reasoning.`,
 		a.role, a.goal, a.backstory)
-}
-
-// buildToolsDescription 构建工具描述
-func (a *BaseAgent) buildToolsDescription() string {
-	var descriptions []string
-	for _, tool := range a.tools {
-		desc := fmt.Sprintf("- %s: %s", tool.GetName(), tool.GetDescription())
-		descriptions = append(descriptions, desc)
-	}
-	return strings.Join(descriptions, "\n")
-}
-
-// buildLLMCallOptions 构建LLM调用选项
-func (a *BaseAgent) buildLLMCallOptions() *llm.CallOptions {
-	toolCtx := NewToolExecutionContext(a, nil) // 为了向后兼容，传入nil task
-	return a.buildLLMCallOptionsWithTools(toolCtx)
 }
 
 // buildLLMCallOptionsWithTools 构建包含工具信息的LLM调用选项
@@ -910,7 +894,10 @@ func (a *BaseAgent) handleReasoning(ctx context.Context, task Task) error {
 	// 发射推理开始事件
 	if a.eventBus != nil {
 		startEvent := NewAgentReasoningStartedEvent(a.id, a.role, task.GetID(), 1)
-		a.eventBus.Emit(ctx, a, startEvent)
+		if err := a.eventBus.Emit(ctx, a, startEvent); err != nil {
+			a.logger.Error("Failed to emit agent reasoning started event",
+				logger.Field{Key: "error", Value: err})
+		}
 	}
 
 	startTime := time.Now()
@@ -921,7 +908,10 @@ func (a *BaseAgent) handleReasoning(ctx context.Context, task Task) error {
 		// 发射推理错误事件
 		if a.eventBus != nil {
 			errorEvent := NewAgentReasoningErrorEvent(a.id, a.role, task.GetID(), err.Error())
-			a.eventBus.Emit(ctx, a, errorEvent)
+			if emitErr := a.eventBus.Emit(ctx, a, errorEvent); emitErr != nil {
+				a.logger.Error("Failed to emit agent reasoning error event",
+					logger.Field{Key: "error", Value: emitErr})
+			}
 		}
 		return fmt.Errorf("reasoning failed: %w", err)
 	}
@@ -948,28 +938,14 @@ func (a *BaseAgent) handleReasoning(ctx context.Context, task Task) error {
 		if a.eventBus != nil {
 			completedEvent := NewAgentReasoningCompletedEvent(
 				a.id, a.role, task.GetID(), duration, reasoningOutput.Iterations, true)
-			a.eventBus.Emit(ctx, a, completedEvent)
+			if err := a.eventBus.Emit(ctx, a, completedEvent); err != nil {
+				a.logger.Error("Failed to emit agent reasoning completed event",
+					logger.Field{Key: "error", Value: err})
+			}
 		}
 	}
 
 	return nil
-}
-
-// executeStepCallback 执行步骤回调，对标Python的step_callback
-func (a *BaseAgent) executeStepCallback(ctx context.Context, step *AgentStep) error {
-	if a.stepCallback == nil {
-		return nil
-	}
-
-	if a.executionConfig.Verbose {
-		a.logger.Info("Executing step callback",
-			logger.Field{Key: "step_id", Value: step.StepID},
-			logger.Field{Key: "step_type", Value: step.StepType},
-			logger.Field{Key: "description", Value: step.Description},
-		)
-	}
-
-	return a.stepCallback(ctx, step)
 }
 
 // SetReasoningHandler 设置推理处理器

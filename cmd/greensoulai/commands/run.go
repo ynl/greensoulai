@@ -269,14 +269,3 @@ func checkEnvironmentVariables(config *config.ProjectConfig, log logger.Logger) 
 
 	return nil
 }
-
-// watchForChanges 监听文件变化（开发模式）
-func watchForChanges(ctx context.Context, projectRoot string,
-	restartFunc func() error, log logger.Logger) error {
-
-	// TODO: 实现文件监听和热重载功能
-	// 可以使用fsnotify包来实现文件系统监听
-
-	log.Info("文件监听功能正在开发中...")
-	return nil
-}
