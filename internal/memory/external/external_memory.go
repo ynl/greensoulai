@@ -194,7 +194,12 @@ func (em *ExternalMemory) SearchBySource(ctx context.Context, sourceName, query 
 	// 执行基础搜索
 	results, err := em.Search(ctx, query, limit*2, scoreThreshold)
 	if err != nil {
-		return nil, err
+		return []memory.MemoryItem{}, err
+	}
+
+	// 确保results不为nil
+	if results == nil {
+		return []memory.MemoryItem{}, nil
 	}
 
 	// 过滤出指定源的记忆
@@ -210,6 +215,11 @@ func (em *ExternalMemory) SearchBySource(ctx context.Context, sourceName, query 
 		}
 	}
 
+	// 确保返回空slice而不是nil
+	if filteredResults == nil {
+		filteredResults = []memory.MemoryItem{}
+	}
+
 	return filteredResults, nil
 }
 
@@ -218,7 +228,12 @@ func (em *ExternalMemory) SearchBySourceType(ctx context.Context, sourceType Ext
 	// 执行基础搜索
 	results, err := em.Search(ctx, query, limit*2, scoreThreshold)
 	if err != nil {
-		return nil, err
+		return []memory.MemoryItem{}, err
+	}
+
+	// 确保results不为nil
+	if results == nil {
+		return []memory.MemoryItem{}, nil
 	}
 
 	// 过滤出指定源类型的记忆
@@ -232,6 +247,11 @@ func (em *ExternalMemory) SearchBySourceType(ctx context.Context, sourceType Ext
 				}
 			}
 		}
+	}
+
+	// 确保返回空slice而不是nil
+	if filteredResults == nil {
+		filteredResults = []memory.MemoryItem{}
 	}
 
 	return filteredResults, nil
