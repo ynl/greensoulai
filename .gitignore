@@ -39,3 +39,4 @@ internal/memory/long_term/advanced-path
 internal/memory/long_term/thread-safe-collection*
 internal/training/*_test.json
 internal/training/training_data.json
+memory_to_llm_example
