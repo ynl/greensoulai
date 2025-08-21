@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/ynl/greensoulai/internal/llm"
@@ -29,7 +30,11 @@ func main() {
 		fmt.Printf("❌ 创建LLM失败: %v\n", err)
 		return
 	}
-	defer llmInstance.Close()
+	defer func() {
+		if err := llmInstance.Close(); err != nil {
+			log.Printf("Failed to close LLM instance: %v", err)
+		}
+	}()
 
 	fmt.Printf("✅ 成功创建 %s 模型实例\n", llmInstance.GetModel())
 	fmt.Printf("🎯 支持函数调用: %v\n", llmInstance.SupportsFunctionCalling())

@@ -213,7 +213,7 @@ func (ltm *LongTermMemory) Reset(ctx context.Context) error {
 	if ltm.sqliteStorage != nil {
 		return ltm.sqliteStorage.Clear(ctx)
 	}
-	return ltm.BaseMemory.Clear(ctx)
+	return ltm.Clear(ctx)
 }
 
 // GetEventBus 获取事件总线的辅助方法

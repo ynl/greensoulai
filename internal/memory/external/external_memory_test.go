@@ -57,7 +57,7 @@ func TestExternalMemoryInterface(t *testing.T) {
 	_ = err
 
 	// 测试Search方法
-	results, err := memory.Search(ctx, "external", 10, 0.5)
+	results, _ := memory.Search(ctx, "external", 10, 0.5)
 	// 可能返回错误或空结果，我们只是确保不panic
 	assert.NotNil(t, results) // 应该返回空slice而不是nil
 

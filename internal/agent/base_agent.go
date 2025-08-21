@@ -473,6 +473,8 @@ func (a *BaseAgent) buildLLMCallOptionsWithTools(toolCtx *ToolExecutionContext) 
 
 	if a.executionConfig.Timeout > 0 {
 		// Note: 这里可能需要在LLM接口中添加超时支持
+		a.logger.Debug("Timeout configuration detected but not implemented yet",
+			logger.Field{Key: "timeout", Value: a.executionConfig.Timeout})
 	}
 
 	// 添加工具信息到LLM调用选项

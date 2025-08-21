@@ -163,7 +163,7 @@ func (te *TaskEvaluatorImpl) EvaluateTrainingData(ctx context.Context, trainingD
 	taskDescription, _ := trainingData["task_description"].(string)
 	expectedOutput, _ := trainingData["expected_output"].(string)
 	actualOutput, _ := trainingData["actual_output"].(string)
-	iterationRaw, _ := trainingData["iteration"]
+	iterationRaw := trainingData["iteration"]
 	iteration := 0
 	if iterationInt, ok := iterationRaw.(int); ok {
 		iteration = iterationInt

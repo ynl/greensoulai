@@ -567,10 +567,8 @@ func NewFlowStateWithData(initialData map[string]interface{}) FlowState {
 	state := &BaseFlowState{
 		data: make(map[string]interface{}),
 	}
-	if initialData != nil {
-		for k, v := range initialData {
-			state.data[k] = v
-		}
+	for k, v := range initialData {
+		state.data[k] = v
 	}
 	return state
 }

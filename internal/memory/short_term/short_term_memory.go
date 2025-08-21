@@ -106,7 +106,7 @@ func (stm *ShortTermMemory) SaveInteractionMemory(ctx context.Context, sessionID
 // SearchByTask 根据任务ID搜索记忆
 func (stm *ShortTermMemory) SearchByTask(ctx context.Context, taskID string, query string, limit int, scoreThreshold float64) ([]memory.MemoryItem, error) {
 	// 首先执行基础搜索
-	results, err := stm.BaseMemory.Search(ctx, query, limit*2, scoreThreshold) // 获取更多结果进行过滤
+	results, err := stm.Search(ctx, query, limit*2, scoreThreshold) // 获取更多结果进行过滤
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (stm *ShortTermMemory) SearchByTask(ctx context.Context, taskID string, que
 // SearchBySession 根据会话ID搜索记忆
 func (stm *ShortTermMemory) SearchBySession(ctx context.Context, sessionID string, query string, limit int, scoreThreshold float64) ([]memory.MemoryItem, error) {
 	// 首先执行基础搜索
-	results, err := stm.BaseMemory.Search(ctx, query, limit*2, scoreThreshold)
+	results, err := stm.Search(ctx, query, limit*2, scoreThreshold)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (stm *ShortTermMemory) SearchBySession(ctx context.Context, sessionID strin
 func (stm *ShortTermMemory) GetRecentMemories(ctx context.Context, agent string, limit int) ([]memory.MemoryItem, error) {
 	// 使用通用查询获取记忆项
 	query := fmt.Sprintf("agent:%s", agent)
-	return stm.BaseMemory.Search(ctx, query, limit, 0.1) // 使用较低的阈值获取更多结果
+	return stm.Search(ctx, query, limit, 0.1) // 使用较低的阈值获取更多结果
 }
 
 // ClearSession 清除指定会话的记忆

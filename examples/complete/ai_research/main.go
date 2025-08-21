@@ -221,7 +221,7 @@ func demonstrateCrewResearch(llmInstance llm.LLM, eventBus events.EventBus, base
 	})
 
 	if err != nil {
-		return fmt.Errorf("Crew执行失败: %w", err)
+		return fmt.Errorf("crew执行失败: %w", err)
 	}
 
 	duration := time.Since(startTime)

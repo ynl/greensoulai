@@ -46,7 +46,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("❌ 创建LLM失败: %v", err)
 	}
-	defer llmInstance.Close()
+	defer func() {
+		if err := llmInstance.Close(); err != nil {
+			log.Printf("Failed to close LLM instance: %v", err)
+		}
+	}()
 
 	// 如果需要添加OpenRouter的可选headers，可以通过以下方式：
 	// 注意：我们需要在创建时就添加自定义headers

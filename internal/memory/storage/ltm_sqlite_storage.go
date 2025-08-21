@@ -60,7 +60,10 @@ func (s *LTMSQLiteStorage) initialize() error {
 
 	// 测试连接
 	if err := db.Ping(); err != nil {
-		db.Close()
+		if err := db.Close(); err != nil {
+			s.logger.Error("Failed to close database connection",
+				logger.Field{Key: "error", Value: err})
+		}
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
 

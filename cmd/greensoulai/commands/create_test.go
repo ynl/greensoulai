@@ -236,7 +236,9 @@ func TestCreateCrewCommand(t *testing.T) {
 				}
 
 				// 清理
-				os.RemoveAll(projectDir)
+				if err := os.RemoveAll(projectDir); err != nil {
+					t.Logf("Failed to clean up project directory: %v", err)
+				}
 			}
 		})
 	}
@@ -298,7 +300,9 @@ func TestCreateFlowCommand(t *testing.T) {
 	}
 
 	// 清理
-	os.RemoveAll("test-flow")
+	if err := os.RemoveAll("test-flow"); err != nil {
+		t.Logf("Failed to clean up test-flow directory: %v", err)
+	}
 }
 
 func TestCreateAgentCommand(t *testing.T) {

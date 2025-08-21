@@ -192,7 +192,7 @@ func (em *ExternalMemory) FetchFromSource(ctx context.Context, sourceName, query
 // SearchBySource 根据源搜索记忆
 func (em *ExternalMemory) SearchBySource(ctx context.Context, sourceName, query string, limit int, scoreThreshold float64) ([]memory.MemoryItem, error) {
 	// 执行基础搜索
-	results, err := em.BaseMemory.Search(ctx, query, limit*2, scoreThreshold)
+	results, err := em.Search(ctx, query, limit*2, scoreThreshold)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func (em *ExternalMemory) SearchBySource(ctx context.Context, sourceName, query 
 // SearchBySourceType 根据源类型搜索记忆
 func (em *ExternalMemory) SearchBySourceType(ctx context.Context, sourceType ExternalSourceType, query string, limit int, scoreThreshold float64) ([]memory.MemoryItem, error) {
 	// 执行基础搜索
-	results, err := em.BaseMemory.Search(ctx, query, limit*2, scoreThreshold)
+	results, err := em.Search(ctx, query, limit*2, scoreThreshold)
 	if err != nil {
 		return nil, err
 	}

@@ -89,7 +89,10 @@ func newCreateCrewCommand(log logger.Logger) *cobra.Command {
 					fmt.Printf("建议的Go模块名: %s\n", goModule)
 					fmt.Print("请输入Go模块名 (按回车使用建议值): ")
 					var input string
-					fmt.Scanln(&input)
+					if _, err := fmt.Scanln(&input); err != nil {
+						// 如果用户直接按回车或输入无效，使用默认值
+						input = ""
+					}
 					if input != "" {
 						goModule = input
 					}

@@ -749,10 +749,12 @@ func (c *BaseCrew) Close() error {
 	// 清理memory和cache
 	if c.memory != nil {
 		// TODO: 清理memory
+		c.logger.Debug("Memory system cleanup required")
 	}
 
 	if c.cache != nil {
 		// TODO: 清理cache
+		c.logger.Debug("Cache system cleanup required")
 	}
 
 	// 清空集合

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -189,5 +190,7 @@ func main() {
 	fmt.Println("```")
 
 	// 清理资源
-	openrouterLLM.Close()
+	if err := openrouterLLM.Close(); err != nil {
+		log.Printf("Failed to close OpenRouter LLM: %v", err)
+	}
 }

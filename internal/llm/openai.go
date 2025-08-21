@@ -352,7 +352,12 @@ func (o *OpenAILLM) makeAPICall(ctx context.Context, request *OpenAIChatRequest)
 	if lastErr != nil {
 		return nil, fmt.Errorf("HTTP request failed after %d retries: %w", o.GetMaxRetries(), lastErr)
 	}
-	defer response.Body.Close()
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			o.logger.Error("Failed to close response body",
+				logger.Field{Key: "error", Value: err})
+		}
+	}()
 
 	// Read response body
 	responseBody, err := io.ReadAll(response.Body)
@@ -422,7 +427,12 @@ func (o *OpenAILLM) streamAPICall(ctx context.Context, request *OpenAIChatReques
 		responseChannel <- StreamResponse{Error: fmt.Errorf("HTTP request failed: %w", err)}
 		return
 	}
-	defer response.Body.Close()
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			o.logger.Error("Failed to close response body",
+				logger.Field{Key: "error", Value: err})
+		}
+	}()
 
 	// Check status
 	if response.StatusCode >= 400 {

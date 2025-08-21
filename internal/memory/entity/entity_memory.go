@@ -156,7 +156,7 @@ func (em *EntityMemory) SearchEntities(ctx context.Context, query string, entity
 	}
 
 	// 执行基础搜索
-	results, err := em.BaseMemory.Search(ctx, searchQuery, limit*2, scoreThreshold)
+	results, err := em.Search(ctx, searchQuery, limit*2, scoreThreshold)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func (em *EntityMemory) SearchRelationships(ctx context.Context, sourceEntity, t
 	}
 
 	// 执行搜索
-	results, err := em.BaseMemory.Search(ctx, query, limit*2, 0.1)
+	results, err := em.Search(ctx, query, limit*2, 0.1)
 	if err != nil {
 		return nil, err
 	}
