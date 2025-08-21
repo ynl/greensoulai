@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -233,17 +234,11 @@ func (rs *RAGStorage) calculateRelevanceScore(item memory.MemoryItem, queryLower
 	return score
 }
 
-// sortByScore 按分数排序（简化实现）
+// sortByScore 按分数排序（高效实现）
 func (rs *RAGStorage) sortByScore(items []memory.MemoryItem) {
-	// 简单的冒泡排序（实际应使用更高效的排序算法）
-	n := len(items)
-	for i := 0; i < n-1; i++ {
-		for j := 0; j < n-i-1; j++ {
-			if items[j].Score < items[j+1].Score {
-				items[j], items[j+1] = items[j+1], items[j]
-			}
-		}
-	}
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].Score > items[j].Score
+	})
 }
 
 // GetStats 获取存储统计信息

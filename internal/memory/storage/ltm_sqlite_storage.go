@@ -78,7 +78,7 @@ func (s *LTMSQLiteStorage) initialize() error {
 
 // createTables 创建数据库表
 func (s *LTMSQLiteStorage) createTables() error {
-	// 创建主表
+	// 创建主表（简化版本，参照Python版本设计）
 	createTableSQL := `
 	CREATE TABLE IF NOT EXISTS long_term_memories (
 		id TEXT PRIMARY KEY,
@@ -86,15 +86,12 @@ func (s *LTMSQLiteStorage) createTables() error {
 		metadata TEXT,
 		agent TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		score REAL DEFAULT 0.0,
-		access_count INTEGER DEFAULT 0,
-		last_access DATETIME
+		score REAL DEFAULT 0.0
 	);
 	
 	CREATE INDEX IF NOT EXISTS idx_agent ON long_term_memories(agent);
 	CREATE INDEX IF NOT EXISTS idx_created_at ON long_term_memories(created_at);
 	CREATE INDEX IF NOT EXISTS idx_score ON long_term_memories(score);
-	CREATE INDEX IF NOT EXISTS idx_last_access ON long_term_memories(last_access);
 	`
 
 	_, err := s.db.Exec(createTableSQL)
@@ -155,8 +152,8 @@ func (s *LTMSQLiteStorage) Save(ctx context.Context, item memory.MemoryItem) err
 
 	insertSQL := `
 	INSERT OR REPLACE INTO long_term_memories 
-	(id, value, metadata, agent, created_at, score, access_count, last_access)
-	VALUES (?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
+	(id, value, metadata, agent, created_at, score)
+	VALUES (?, ?, ?, ?, ?, ?)
 	`
 
 	_, err = s.db.ExecContext(ctx, insertSQL,
@@ -190,11 +187,11 @@ func (s *LTMSQLiteStorage) Search(ctx context.Context, query string, limit int, 
 
 	// 使用FTS进行全文搜索
 	searchSQL := `
-	SELECT m.id, m.value, m.metadata, m.agent, m.created_at, m.score, m.access_count, m.last_access
+	SELECT m.id, m.value, m.metadata, m.agent, m.created_at, m.score
 	FROM memories_fts fts
 	JOIN long_term_memories m ON fts.id = m.id
 	WHERE memories_fts MATCH ? AND m.score >= ?
-	ORDER BY bm25(memories_fts) ASC, m.score DESC, m.last_access DESC
+	ORDER BY bm25(memories_fts) ASC, m.score DESC, m.created_at DESC
 	LIMIT ?
 	`
 
@@ -207,8 +204,7 @@ func (s *LTMSQLiteStorage) Search(ctx context.Context, query string, limit int, 
 
 	for rows.Next() {
 		var item memory.MemoryItem
-		var metadataJSON, createdAtStr, lastAccessStr string
-		var accessCount int
+		var metadataJSON, createdAtStr string
 
 		err := rows.Scan(
 			&item.ID,
@@ -217,8 +213,6 @@ func (s *LTMSQLiteStorage) Search(ctx context.Context, query string, limit int, 
 			&item.Agent,
 			&createdAtStr,
 			&item.Score,
-			&accessCount,
-			&lastAccessStr,
 		)
 		if err != nil {
 			s.logger.Error("failed to scan row", logger.Field{Key: "error", Value: err})
@@ -239,10 +233,6 @@ func (s *LTMSQLiteStorage) Search(ctx context.Context, query string, limit int, 
 		if createdAt, err := time.Parse(time.RFC3339, createdAtStr); err == nil {
 			item.CreatedAt = createdAt
 		}
-
-		// 更新访问统计（在并发环境下暂时禁用以避免读锁升级为写锁的死锁）
-		// TODO: 重构为异步更新或使用更细粒度的锁
-		// s.updateAccessStats(ctx, item.ID)
 
 		results = append(results, item)
 	}
@@ -267,7 +257,7 @@ func (s *LTMSQLiteStorage) simpleLikeSearch(ctx context.Context, query string, l
 	results := make([]memory.MemoryItem, 0)
 
 	searchSQL := `
-	SELECT id, value, metadata, agent, created_at, score, access_count, last_access
+	SELECT id, value, metadata, agent, created_at, score
 	FROM long_term_memories
 	WHERE (value LIKE ? OR agent LIKE ? OR metadata LIKE ?) AND score >= ?
 	ORDER BY score DESC, created_at DESC
@@ -283,8 +273,7 @@ func (s *LTMSQLiteStorage) simpleLikeSearch(ctx context.Context, query string, l
 
 	for rows.Next() {
 		var item memory.MemoryItem
-		var metadataJSON, createdAtStr, lastAccessStr string
-		var accessCount int
+		var metadataJSON, createdAtStr string
 
 		err := rows.Scan(
 			&item.ID,
@@ -293,8 +282,6 @@ func (s *LTMSQLiteStorage) simpleLikeSearch(ctx context.Context, query string, l
 			&item.Agent,
 			&createdAtStr,
 			&item.Score,
-			&accessCount,
-			&lastAccessStr,
 		)
 		if err != nil {
 			continue
@@ -311,10 +298,6 @@ func (s *LTMSQLiteStorage) simpleLikeSearch(ctx context.Context, query string, l
 		if createdAt, err := time.Parse(time.RFC3339, createdAtStr); err == nil {
 			item.CreatedAt = createdAt
 		}
-
-		// 更新访问统计（在并发环境下暂时禁用以避免读锁升级为写锁的死锁）
-		// TODO: 重构为异步更新或使用更细粒度的锁
-		// s.updateAccessStats(ctx, item.ID)
 
 		results = append(results, item)
 	}
@@ -407,11 +390,11 @@ func (s *LTMSQLiteStorage) GetStats(ctx context.Context) (map[string]interface{}
 	}
 	stats["agent_stats"] = agentStats
 
-	// 最近访问的记忆数量（24小时内）
+	// 最近创建的记忆数量（24小时内）
 	var recentCount int
 	s.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM long_term_memories WHERE last_access > datetime('now', '-24 hours')`).Scan(&recentCount)
-	stats["recent_accessed"] = recentCount
+		`SELECT COUNT(*) FROM long_term_memories WHERE created_at > datetime('now', '-24 hours')`).Scan(&recentCount)
+	stats["recent_created"] = recentCount
 
 	// 平均分数
 	var avgScore float64
